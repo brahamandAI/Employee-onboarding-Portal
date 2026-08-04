@@ -60,8 +60,8 @@ export function MarketingNavbar() {
               className={cn(
                 "rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150",
                 activeSection === item.id
-                  ? "bg-[#1D4ED8] text-white shadow-sm"
-                  : "text-[#475569] hover:bg-white hover:text-[#1D4ED8]"
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-[#475569] hover:bg-white hover:text-primary"
               )}
             >
               {item.label}

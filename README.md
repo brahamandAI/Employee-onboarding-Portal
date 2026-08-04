@@ -17,7 +17,7 @@ cp .env.example .env.local
 | `MONGODB_URI` | Yes | MongoDB connection string with database name |
 | `AUTH_SECRET` | Yes | Staff session secret (min 32 chars) |
 | `EMPLOYEE_TOKEN_SECRET` | Yes | Employee portal JWT secret (min 32 chars) |
-| `NEXTAUTH_URL` | Yes | App URL, e.g. `http://localhost:3000` |
+| `NEXTAUTH_URL` | Yes | App URL, e.g. `http://localhost:3000` |+
 | `CLOUDINARY_CLOUD_NAME` | Yes* | For document uploads |
 | `CLOUDINARY_API_KEY` | Yes* | For document uploads |
 | `CLOUDINARY_API_SECRET` | Yes* | For document uploads |
@@ -73,3 +73,5 @@ comadmin@rakshaksecuritas.com / Admin@123
 
 
 OTP is printed to the server console in development when email is not configured.
+
+

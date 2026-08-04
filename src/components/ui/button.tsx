@@ -5,24 +5,48 @@ import { cn } from "@/lib/utils";
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "secondary" | "destructive" | "ghost" | "outline" | "accent";
-  size?: "default" | "sm" | "lg";
+  variant?:
+    | "default"
+    | "secondary"
+    | "destructive"
+    | "ghost"
+    | "outline"
+    | "accent"
+    | "sky"
+    | "teal"
+    | "success"
+    | "warning";
+  size?: "default" | "sm" | "lg" | "icon";
   isLoading?: boolean;
 }
 
 const variantClasses: Record<NonNullable<ButtonProps["variant"]>, string> = {
-  default: "bg-primary text-white hover:bg-primary-hover",
-  accent: "bg-accent text-primary hover:bg-accent/90",
-  secondary: "bg-white text-primary border border-border hover:bg-muted",
-  destructive: "bg-red-700 text-white hover:bg-red-800",
-  ghost: "hover:bg-muted text-primary",
-  outline: "border border-primary text-primary hover:bg-primary/5",
+  default:
+    "bg-gradient-to-b from-[#12325C] to-[#0B1F3A] text-white shadow-sm hover:from-[#1A3F70] hover:to-[#0F2748] hover:shadow-md",
+  accent:
+    "bg-gradient-to-b from-[#E4C65A] to-[#D4AF37] text-[#0B1F3A] shadow-sm hover:from-[#EDD06E] hover:to-[#C9A227] hover:shadow-md",
+  sky:
+    "bg-gradient-to-b from-[#38BDF8] to-[#0284C7] text-white shadow-sm hover:from-[#7DD3FC] hover:to-[#0369A1] hover:shadow-md",
+  teal:
+    "bg-gradient-to-b from-[#14B8A6] to-[#0F766E] text-white shadow-sm hover:from-[#2DD4BF] hover:to-[#115E59] hover:shadow-md",
+  success:
+    "bg-gradient-to-b from-[#22C55E] to-[#15803D] text-white shadow-sm hover:from-[#4ADE80] hover:to-[#166534] hover:shadow-md",
+  warning:
+    "bg-gradient-to-b from-[#FBBF24] to-[#D97706] text-white shadow-sm hover:from-[#FCD34D] hover:to-[#B45309] hover:shadow-md",
+  secondary:
+    "bg-white text-primary border border-[#E2E8F0] shadow-sm hover:border-sky-200 hover:bg-[#F8FAFC] hover:shadow",
+  destructive:
+    "bg-gradient-to-b from-[#EF4444] to-[#B91C1C] text-white shadow-sm hover:from-[#F87171] hover:to-[#991B1B] hover:shadow-md",
+  ghost: "hover:bg-[#EFF6FF] text-primary",
+  outline:
+    "border border-[#0B1F3A]/25 text-primary bg-white/80 hover:border-[#0B1F3A]/50 hover:bg-[#0B1F3A]/5",
 };
 
 const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
   default: "h-10 px-4 py-2",
-  sm: "h-8 px-3 text-sm",
+  sm: "h-9 px-3.5 text-sm",
   lg: "h-12 px-6 text-base",
+  icon: "h-10 w-10 p-0",
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -40,8 +64,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ) => (
     <button
       ref={ref}
+      suppressHydrationWarning
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
         variantClasses[variant],
         sizeClasses[size],
         className

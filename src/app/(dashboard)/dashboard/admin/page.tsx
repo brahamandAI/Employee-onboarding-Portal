@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight, CheckCircle, Clock3, Users, Layers } from "lucide-react";
 import { requireStaffAuth } from "@/lib/auth/guards";
 import { UserRole } from "@/types/enums";
 import { listStaffUsers } from "@/lib/services/admin.service";
@@ -8,12 +9,11 @@ import {
   DashboardPageHeader,
   DashboardStatCard,
 } from "@/components/dashboard/DashboardUi";
-import { ArrowRight, CheckCircle, Users } from "lucide-react";
 
 export const metadata = { title: "Admin Dashboard" };
 
 export default async function AdminDashboardPage() {
-  const { user } = await requireStaffAuth(UserRole.ADMIN);
+  await requireStaffAuth(UserRole.ADMIN);
   const [regStats, submitters] = await Promise.all([
     getAdminRegistrationStats(),
     listStaffUsers(),
@@ -25,7 +25,7 @@ export default async function AdminDashboardPage() {
     <div className="space-y-6">
       <DashboardPageHeader
         title="Administration"
-        description={`Welcome back, ${user.name}. Manage users and L2-approved registrations.`}
+        description="Manage staff users and L2-approved registrations."
         actions={<DownloadExcelButton scope="admin" />}
       />
 
@@ -33,34 +33,38 @@ export default async function AdminDashboardPage() {
         <DashboardStatCard
           title="Approved"
           value={regStats.completed}
+          description="L2 approved registrations"
           href="/dashboard/admin/registrations"
           linkLabel="View registrations"
           tone="green"
-          className="stagger-1"
+          icon={CheckCircle}
         />
         <DashboardStatCard
           title="Pending L1"
           value={regStats.pendingL1}
+          description="Awaiting first-level review"
           tone="blue"
-          className="stagger-2"
+          icon={Clock3}
         />
         <DashboardStatCard
           title="Pending L2"
           value={regStats.pendingL2}
+          description="Awaiting final approval"
           tone="slate"
-          className="stagger-3"
+          icon={Layers}
         />
         <DashboardStatCard
           title="Active staff"
           value={`${activeUsers}/${submitters.length}`}
+          description="Staff accounts in the portal"
           href="/dashboard/admin/users"
           linkLabel="Manage users"
           tone="default"
-          className="stagger-4"
+          icon={Users}
         />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 animate-fade-in">
+      <div className="grid gap-3 sm:grid-cols-2">
         <Link
           href="/dashboard/admin/registrations"
           className="group flex items-center justify-between rounded-2xl border border-[#E2E8F0] bg-white px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#BFDBFE] hover:shadow-md"

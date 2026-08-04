@@ -77,6 +77,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Staff document-folder APIs use NextAuth in the route handlers — do not
+  // treat them as employee-session routes (prefix would match otherwise).
+  if (pathname.startsWith("/api/employee-documents-folder")) {
+    return NextResponse.next();
+  }
+
   if (pathname.startsWith("/api/employee")) {
     const employeeCookie = request.cookies.get(EMPLOYEE_SESSION_COOKIE)?.value;
     const employeeSession = await getEmployeeSessionFromRequest(employeeCookie);

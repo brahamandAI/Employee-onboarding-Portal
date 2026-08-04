@@ -6,7 +6,14 @@ import { getOnboardingEmployee } from "@/lib/services/onboarding.service";
 import { OnboardingWizardLoader } from "@/features/onboarding/components/OnboardingWizardLoader";
 import { createEmptyOnboardingEmployee } from "@/features/onboarding/utils/empty-employee";
 import { getSubmitterStats } from "@/lib/services/submitter.service";
-import { Plus } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock3,
+  FileStack,
+  Layers,
+  Plus,
+  RotateCcw,
+} from "lucide-react";
 import {
   DashboardPageHeader,
   DashboardStatCard,
@@ -74,11 +81,11 @@ export default async function SubmitterDashboardPage({ searchParams }: PageProps
     <div className="space-y-6">
       <DashboardPageHeader
         title="New Registration"
-        description={`Welcome, ${user.name}. Fill the form below — submitted records appear under All Registrations.`}
+        description="Fill the form below. Submitted records appear under All Registrations."
         actions={
           <Link
             href="/dashboard/submitter?new=1"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#1D4ED8] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-[#1E40AF] hover:shadow-lg"
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-b from-[#12325C] to-[#0B1F3A] px-4 text-sm font-semibold text-white shadow-sm transition hover:from-[#1A3F70] hover:to-[#0F2748]"
           >
             <Plus className="h-4 w-4" />
             Start Fresh
@@ -87,7 +94,7 @@ export default async function SubmitterDashboardPage({ searchParams }: PageProps
       />
 
       {loadError && continueEdit && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 animate-fade-in">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           Could not open for editing: {loadError}. Try again from All Registrations.
         </div>
       )}
@@ -96,40 +103,45 @@ export default async function SubmitterDashboardPage({ searchParams }: PageProps
         <DashboardStatCard
           title="All"
           value={stats.total}
+          description="Total registrations"
           href="/dashboard/submitter/registrations"
           linkLabel="View all"
           tone="default"
-          className="stagger-1"
+          icon={FileStack}
         />
         <DashboardStatCard
           title="Pending L1"
           value={stats.pendingL1}
+          description="Awaiting L1 review"
           tone="blue"
-          className="stagger-2"
+          icon={Clock3}
         />
         <DashboardStatCard
           title="Pending L2"
           value={stats.pendingL2}
+          description="Awaiting L2 approval"
           tone="slate"
-          className="stagger-3"
+          icon={Layers}
         />
         <DashboardStatCard
           title="Reversed"
           value={stats.reversed}
+          description="Needs correction"
           href="/dashboard/submitter/registrations/reversed"
           linkLabel="Fix & resubmit"
           tone="amber"
-          className="stagger-4"
+          icon={RotateCcw}
         />
         <DashboardStatCard
           title="Approved"
           value={stats.approved}
+          description="L2 approved"
           tone="green"
-          className="stagger-5"
+          icon={CheckCircle2}
         />
       </div>
 
-      <div className="dashboard-panel animate-fade-in">
+      <div className="dashboard-panel">
         <OnboardingWizardLoader
           employee={displayEmployee}
           registrationMode={registrationMode}

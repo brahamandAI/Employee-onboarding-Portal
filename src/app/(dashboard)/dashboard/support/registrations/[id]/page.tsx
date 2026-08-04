@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { requireStaffAuth } from "@/lib/auth/guards";
 import { UserRole } from "@/types/enums";
 import { getEmployeeDetailForReview } from "@/lib/services/approval.service";
 import { RegistrationDetailReadOnly } from "@/features/submitter/components/RegistrationDetailReadOnly";
+import { DashboardBackLink } from "@/components/dashboard/DashboardBackLink";
 
 export const metadata = { title: "Registration Details | Support" };
 
@@ -21,10 +20,7 @@ export default async function SupportRegistrationDetailPage({ params }: PageProp
   const { employee, documents, history } = data;
   return (
     <div className="space-y-4">
-      <Link href="/dashboard/support/registrations" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
-        <ArrowLeft className="h-4 w-4" />
-        Back to registrations
-      </Link>
+      <DashboardBackLink href="/dashboard/support/registrations" label="Back to registrations" />
       <RegistrationDetailReadOnly
         employeeId={String(employee._id)}
         showDocumentsFolder

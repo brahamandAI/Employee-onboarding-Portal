@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import { ToastProvider, Toaster } from "@/components/ui/toast";
 import { SITE } from "@/features/marketing/constants";
 import "./globals.css";
 
-const inter = Inter({
+const outfit = Outfit({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-outfit",
   display: "swap",
 });
 
@@ -29,7 +29,8 @@ export const metadata: Metadata = {
     "CCTV surveillance",
     "facility security",
     "Rakshak Securitas",
-    "PSARA licensed security",
+    "employee onboarding",
+    "EOMS",
   ],
   authors: [{ name: SITE.name }],
   openGraph: {
@@ -49,7 +50,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${jakarta.variable} font-sans`} suppressHydrationWarning>
+      <body className={`${outfit.variable} ${jakarta.variable} font-sans`} suppressHydrationWarning>
         <ToastProvider>
           {children}
           <Toaster />

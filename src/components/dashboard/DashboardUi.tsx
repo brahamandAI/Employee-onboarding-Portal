@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { StaffRole } from "@/types/enums";
 
 interface DashboardPageHeaderProps {
   title: string;
@@ -17,7 +19,7 @@ export function DashboardPageHeader({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-start justify-between gap-4 animate-fade-in",
+        "flex flex-wrap items-start justify-between gap-4",
         className
       )}
     >
@@ -36,6 +38,33 @@ export function DashboardPageHeader({
   );
 }
 
+interface WelcomeCardProps {
+  userName: string;
+  role: StaffRole;
+  title?: string;
+  description?: string;
+  actions?: React.ReactNode;
+  className?: string;
+}
+
+/** @deprecated Prefer DashboardPageHeader for cleaner pages */
+export function WelcomeCard({
+  userName,
+  title,
+  description,
+  actions,
+  className,
+}: WelcomeCardProps) {
+  return (
+    <DashboardPageHeader
+      title={title ?? `Hello, ${userName.split(" ")[0]}`}
+      description={description}
+      actions={actions}
+      className={className}
+    />
+  );
+}
+
 interface DashboardStatCardProps {
   title: string;
   value: number | string;
@@ -43,43 +72,51 @@ interface DashboardStatCardProps {
   linkLabel?: string;
   tone?: "default" | "blue" | "green" | "amber" | "red" | "slate";
   hint?: string;
+  description?: string;
+  icon?: LucideIcon;
   className?: string;
   style?: React.CSSProperties;
 }
 
 const TONE_STYLES: Record<
   NonNullable<DashboardStatCardProps["tone"]>,
-  { value: string; bar: string; soft: string }
+  { value: string; bar: string; iconBg: string; iconText: string }
 > = {
   default: {
     value: "text-primary",
     bar: "from-[#0B1F3A] to-[#1D4ED8]",
-    soft: "bg-[#EFF6FF]",
+    iconBg: "bg-[#EFF6FF]",
+    iconText: "text-[#1D4ED8]",
   },
   blue: {
     value: "text-[#1D4ED8]",
     bar: "from-[#1D4ED8] to-[#38BDF8]",
-    soft: "bg-[#EFF6FF]",
+    iconBg: "bg-[#EFF6FF]",
+    iconText: "text-[#1D4ED8]",
   },
   green: {
     value: "text-[#15803D]",
     bar: "from-[#15803D] to-[#4ADE80]",
-    soft: "bg-[#F0FDF4]",
+    iconBg: "bg-[#F0FDF4]",
+    iconText: "text-[#15803D]",
   },
   amber: {
     value: "text-[#B45309]",
     bar: "from-[#B45309] to-[#FBBF24]",
-    soft: "bg-[#FFFBEB]",
+    iconBg: "bg-[#FFFBEB]",
+    iconText: "text-[#B45309]",
   },
   red: {
     value: "text-[#B91C1C]",
     bar: "from-[#B91C1C] to-[#F87171]",
-    soft: "bg-[#FEF2F2]",
+    iconBg: "bg-[#FEF2F2]",
+    iconText: "text-[#B91C1C]",
   },
   slate: {
     value: "text-[#334155]",
     bar: "from-[#334155] to-[#94A3B8]",
-    soft: "bg-[#F8FAFC]",
+    iconBg: "bg-[#F8FAFC]",
+    iconText: "text-[#475569]",
   },
 };
 
@@ -90,6 +127,8 @@ export function DashboardStatCard({
   linkLabel = "View",
   tone = "default",
   hint,
+  description,
+  icon: Icon,
   className,
   style,
 }: DashboardStatCardProps) {
@@ -102,13 +141,28 @@ export function DashboardStatCard({
           tones.bar
         )}
       />
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#64748B]">
-        {title}
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#64748B]">
+          {title}
+        </p>
+        {Icon && (
+          <span
+            className={cn(
+              "flex h-9 w-9 items-center justify-center rounded-xl",
+              tones.iconBg,
+              tones.iconText
+            )}
+          >
+            <Icon className="h-4.5 w-4.5 h-[18px] w-[18px]" />
+          </span>
+        )}
+      </div>
       <p className={cn("mt-3 font-heading text-3xl font-bold tracking-tight", tones.value)}>
         {value}
       </p>
-      {hint && <p className="mt-1.5 text-xs text-[#94A3B8]">{hint}</p>}
+      {(hint || description) && (
+        <p className="mt-1.5 text-xs text-[#94A3B8]">{description ?? hint}</p>
+      )}
       {href && (
         <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[#1D4ED8] transition group-hover:gap-2">
           {linkLabel}
@@ -119,7 +173,7 @@ export function DashboardStatCard({
   );
 
   const cardClass = cn(
-    "group relative overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-[#BFDBFE] hover:shadow-[0_16px_40px_-24px_rgba(29,78,216,0.45)] animate-rise",
+    "group relative overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-[#BFDBFE] hover:shadow-[0_16px_40px_-24px_rgba(29,78,216,0.45)]",
     className
   );
 
@@ -143,16 +197,25 @@ export function DashboardSection({
   action,
   children,
   className,
+  icon: Icon,
 }: {
   title: string;
   action?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  icon?: LucideIcon;
 }) {
   return (
-    <section className={cn("space-y-4 animate-fade-in", className)}>
+    <section className={cn("space-y-4", className)}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-heading text-lg font-semibold text-primary">{title}</h3>
+        <div className="flex items-center gap-2">
+          {Icon && (
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EFF6FF] text-[#1D4ED8]">
+              <Icon className="h-4 w-4" />
+            </span>
+          )}
+          <h3 className="font-heading text-lg font-semibold text-primary">{title}</h3>
+        </div>
         {action}
       </div>
       {children}

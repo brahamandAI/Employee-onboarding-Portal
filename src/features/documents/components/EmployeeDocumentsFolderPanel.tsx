@@ -46,6 +46,8 @@ interface EmployeeDocumentsFolderPanelProps {
   employeeId: string;
   /** Show panel even before folder is organized (e.g. still pending) */
   showWhenEmpty?: boolean;
+  /** Start with the folder contents expanded */
+  defaultOpen?: boolean;
 }
 
 function formatBytes(n: number) {
@@ -58,9 +60,10 @@ function formatBytes(n: number) {
 export function EmployeeDocumentsFolderPanel({
   employeeId,
   showWhenEmpty = false,
+  defaultOpen = false,
 }: EmployeeDocumentsFolderPanelProps) {
   const [data, setData] = useState<FolderPayload | null>(null);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [zipLoading, setZipLoading] = useState(false);
@@ -142,7 +145,7 @@ export function EmployeeDocumentsFolderPanel({
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
         <div>
-          <CardTitle className="text-base">Employee Documents Folder</CardTitle>
+          <CardTitle className="text-base">Employee Documents</CardTitle>
           {data?.folder ? (
             <div className="mt-2 space-y-1 text-sm text-[#64748B]">
               <p>
@@ -154,14 +157,14 @@ export function EmployeeDocumentsFolderPanel({
                 {data.folder.folderPath}
               </p>
               <p>
-                <span className="font-medium text-primary">Documents:</span>{" "}
+                <span className="font-medium text-primary">Total Uploaded Documents:</span>{" "}
                 {data.folder.documentCount}
               </p>
             </div>
           ) : (
             <p className="mt-2 text-sm text-[#64748B]">
               Folder is created automatically after L2 approval and Temporary Employee ID
-              generation.
+              generation. Uploaded documents are listed below once available.
             </p>
           )}
         </div>
@@ -176,7 +179,7 @@ export function EmployeeDocumentsFolderPanel({
             }}
           >
             <FolderOpen className="h-4 w-4" />
-            {open ? "Close Folder" : "Open Folder"}
+            {open ? "Close Folder" : "View Folder"}
           </Button>
           {data?.permissions.canDownloadZip && data.documents.length > 0 && (
             <Button
@@ -184,10 +187,10 @@ export function EmployeeDocumentsFolderPanel({
               variant="default"
               size="sm"
               isLoading={zipLoading}
-              onClick={downloadZip}
+              onClick={() => void downloadZip()}
             >
               <Package className="h-4 w-4" />
-              Download ZIP
+              Download Folder
             </Button>
           )}
         </div>

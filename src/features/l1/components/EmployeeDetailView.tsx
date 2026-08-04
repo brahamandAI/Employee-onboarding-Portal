@@ -2,8 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/features/l1/components/StatusBadge";
 import { L1ActionPanel } from "@/features/l1/components/L1ActionPanel";
 import { FieldChangesPanel } from "@/features/approval/components/FieldChangesPanel";
+import { ApprovalTimeline } from "@/components/dashboard/ApprovalTimeline";
 import { EmployeeStatus } from "@/types/enums";
-import { ExternalLink, Pencil } from "lucide-react";
+import { ExternalLink, Pencil, History } from "lucide-react";
 import Link from "next/link";
 
 interface DocumentItem {
@@ -148,6 +149,18 @@ export function EmployeeDetailView({
       </div>
 
       <FieldChangesPanel changes={employee.pendingFieldChanges} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <History className="h-4 w-4 text-[#1D4ED8]" />
+            Approval Timeline
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ApprovalTimeline status={employee.status} />
+        </CardContent>
+      </Card>
 
       {employee.submittedBy?.name && (
         <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3">

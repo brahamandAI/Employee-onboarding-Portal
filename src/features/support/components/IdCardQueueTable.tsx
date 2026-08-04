@@ -8,6 +8,7 @@ import {
   Printer,
   CheckCircle,
 } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface IdCardQueueTableProps {
   items: IdCardQueueItem[];
@@ -39,9 +40,11 @@ export function IdCardQueueTable({
 }: IdCardQueueTableProps) {
   if (items.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-[#E2E8F0] bg-white p-12 text-center">
-        <p className="text-[#64748B]">{emptyMessage}</p>
-      </div>
+      <EmptyState
+        title={emptyMessage}
+        description="Approved registrations will appear here for support processing."
+        icon={FileOutput}
+      />
     );
   }
 

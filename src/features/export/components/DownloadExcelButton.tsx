@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Download, Eye, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -23,6 +24,25 @@ export function DownloadExcelButton({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewData | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!preview) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setPreview(null);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [preview]);
 
   async function loadPreview() {
     setPreviewLoading(true);
@@ -70,14 +90,110 @@ export function DownloadExcelButton({
     }
   }
 
-  const previewColumns = preview?.columns.slice(0, 12) ?? [];
+  const modal =
+    preview && mounted
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[200] flex items-start justify-center overflow-y-auto bg-[#0B1F3A]/60 p-3 py-6 backdrop-blur-[2px] sm:items-center sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="excel-preview-title"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setPreview(null);
+            }}
+          >
+            <div className="relative my-auto flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_32px_80px_-24px_rgba(11,31,58,0.55)] isolate">
+              <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] bg-gradient-to-r from-[#F8FAFC] to-white px-4 py-3 sm:px-5">
+                <div>
+                  <h3
+                    id="excel-preview-title"
+                    className="font-heading text-lg font-semibold text-primary"
+                  >
+                    Excel Preview
+                  </h3>
+                  <p className="text-xs text-[#64748B]">
+                    Showing {preview.rows.length} of {preview.count} registration
+                    {preview.count === 1 ? "" : "s"} · {preview.columns.length} columns
+                    {scope === "admin" ? " (L2 approved only)" : ""}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="accent"
+                    onClick={handleDownload}
+                    isLoading={loading}
+                  >
+                    <Download className="h-4 w-4" />
+                    Download Full Excel
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setPreview(null)}
+                  >
+                    <X className="h-4 w-4" />
+                    Close
+                  </Button>
+                </div>
+              </div>
+              <div className="min-h-0 flex-1 overflow-auto bg-white p-4">
+                {preview.count === 0 ? (
+                  <p className="text-sm text-[#64748B]">No registrations to export.</p>
+                ) : (
+                  <table className="min-w-full border-collapse text-left text-xs">
+                    <thead className="sticky top-0 z-10">
+                      <tr className="border-b border-[#E2E8F0] bg-[#F1F5F9]">
+                        {preview.columns.map((col) => (
+                          <th
+                            key={col}
+                            className="whitespace-nowrap px-2.5 py-2.5 font-semibold text-[#475569]"
+                          >
+                            {col}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {preview.rows.map((row, idx) => (
+                        <tr
+                          key={idx}
+                          className="border-b border-[#E2E8F0] odd:bg-white even:bg-[#F8FAFC]"
+                        >
+                          {preview.columns.map((col) => (
+                            <td
+                              key={col}
+                              className="max-w-[220px] truncate px-2.5 py-2 text-[#0F172A]"
+                              title={row[col]}
+                            >
+                              {row[col] || "—"}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                <p className="mt-3 text-xs leading-relaxed text-[#64748B]">
+                  Scroll horizontally to review all {preview.columns.length} columns. The downloaded
+                  Excel file includes the same complete registration fields, documents list, and
+                  approval details.
+                </p>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
 
   return (
     <div className="flex flex-col items-end gap-1">
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
-          variant="outline"
+          variant="sky"
           size="sm"
           onClick={loadPreview}
           isLoading={previewLoading}
@@ -87,7 +203,7 @@ export function DownloadExcelButton({
         </Button>
         <Button
           type="button"
-          variant="outline"
+          variant="accent"
           size="sm"
           onClick={handleDownload}
           isLoading={loading}
@@ -97,86 +213,7 @@ export function DownloadExcelButton({
         </Button>
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
-
-      {preview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-[#E2E8F0] bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-[#E2E8F0] px-4 py-3">
-              <div>
-                <h3 className="font-heading text-lg font-semibold text-primary">
-                  Excel Preview
-                </h3>
-                <p className="text-xs text-[#64748B]">
-                  Showing {preview.rows.length} of {preview.count} registration
-                  {preview.count === 1 ? "" : "s"}
-                  {scope === "admin" ? " (L2 approved only)" : ""}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleDownload}
-                  isLoading={loading}
-                >
-                  <Download className="h-4 w-4" />
-                  Download Excel
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setPreview(null)}
-                >
-                  <X className="h-4 w-4" />
-                  Close
-                </Button>
-              </div>
-            </div>
-            <div className="overflow-auto p-4">
-              {preview.count === 0 ? (
-                <p className="text-sm text-[#64748B]">No registrations to export.</p>
-              ) : (
-                <table className="min-w-full border-collapse text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]">
-                      {previewColumns.map((col) => (
-                        <th
-                          key={col}
-                          className="whitespace-nowrap px-2 py-2 font-medium text-[#64748B]"
-                        >
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {preview.rows.map((row, idx) => (
-                      <tr key={idx} className="border-b border-[#E2E8F0]">
-                        {previewColumns.map((col) => (
-                          <td
-                            key={col}
-                            className="max-w-[180px] truncate px-2 py-2 text-[#0F172A]"
-                            title={row[col]}
-                          >
-                            {row[col] || "—"}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-              {preview.columns.length > previewColumns.length && (
-                <p className="mt-3 text-xs text-[#64748B]">
-                  Preview shows first {previewColumns.length} columns. Full Excel file includes all{" "}
-                  {preview.columns.length} columns and complete form details.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {modal}
     </div>
   );
 }

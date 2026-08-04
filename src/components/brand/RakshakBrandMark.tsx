@@ -1,6 +1,10 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { RAKSHAK_LOGO_ALT, RAKSHAK_LOGO_SRC } from "@/lib/brand";
+import {
+  RAKSHAK_LOGO_ALT,
+  RAKSHAK_LOGO_SIDEBAR_SRC,
+  RAKSHAK_LOGO_SRC,
+} from "@/lib/brand";
 
 type BrandVariant = "sidebar" | "light" | "dark";
 
@@ -14,22 +18,30 @@ interface RakshakBrandMarkProps {
 
 const variantStyles: Record<
   BrandVariant,
-  { wrapper: string; image: string }
+  { wrapper: string; image: string; src: string }
 > = {
   /** White / light headers (marketing nav, auth, employee portal) */
   dark: {
     wrapper: "",
-    image: "max-h-12 sm:max-h-14 lg:max-h-[4.25rem]",
+    image: "max-h-12 sm:max-h-14 lg:max-h-[4.25rem] object-center",
+    src: RAKSHAK_LOGO_SRC,
   },
-  /** Navy sidebar */
+  /**
+   * Dark navy sidebar — transparent PNG sits directly on navy.
+   * Soft lift so maroon / cyan lockup stays crisp (no black plate).
+   */
   sidebar: {
-    wrapper: "px-0.5 py-1.5",
-    image: "max-h-[62px] sm:max-h-[68px] drop-shadow-[0_2px_10px_rgba(0,0,0,0.4)]",
+    wrapper: "",
+    image:
+      "max-h-[54px] sm:max-h-[60px] brightness-[1.1] contrast-[1.06] drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]",
+    src: RAKSHAK_LOGO_SIDEBAR_SRC,
   },
   /** Dark footer / on-primary backgrounds */
   light: {
     wrapper: "px-0.5 py-1.5",
-    image: "max-h-14 sm:max-h-16 brightness-110 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]",
+    image:
+      "max-h-14 sm:max-h-16 brightness-110 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]",
+    src: RAKSHAK_LOGO_SIDEBAR_SRC,
   },
 };
 
@@ -49,10 +61,10 @@ export function RakshakBrandMark({
       )}
     >
       <Image
-        src={RAKSHAK_LOGO_SRC}
+        src={styles.src}
         alt={RAKSHAK_LOGO_ALT}
-        width={640}
-        height={140}
+        width={variant === "sidebar" ? 940 : 640}
+        height={variant === "sidebar" ? 265 : 140}
         priority={priority || variant === "sidebar"}
         className={cn(
           "h-auto w-full object-contain object-left",

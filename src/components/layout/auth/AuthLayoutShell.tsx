@@ -1,84 +1,80 @@
+"use client";
+
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { cn } from "@/lib/utils";
 
 export function AuthLayoutShell({
   children,
-  variant = "staff",
+  title = "Sign In",
+  showBackHome = true,
 }: {
   children: React.ReactNode;
+  /** @deprecated Kept for call-site compatibility */
   variant?: "employee" | "staff";
+  title?: string;
+  showBackHome?: boolean;
 }) {
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#F1F5F9]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(29,78,216,0.16),transparent_45%),radial-gradient(ellipse_at_bottom_right,rgba(14,165,233,0.12),transparent_40%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.35] [background-image:linear-gradient(rgba(15,23,42,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.03)_1px,transparent_1px)] [background-size:28px_28px]" />
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#EEF3F9] px-4 py-10 sm:px-6">
+      {/* Atmosphere */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_55%_at_50%_-15%,rgba(14,165,233,0.18),transparent_55%),radial-gradient(ellipse_50%_40%_at_100%_90%,rgba(11,31,58,0.1),transparent_50%),radial-gradient(ellipse_45%_35%_at_0%_85%,rgba(212,175,55,0.14),transparent_48%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.4] [background-image:linear-gradient(rgba(11,31,58,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(11,31,58,0.035)_1px,transparent_1px)] [background-size:32px_32px]" />
+      <div className="pointer-events-none absolute -left-16 top-24 h-56 w-56 animate-float rounded-full bg-sky-400/25 blur-3xl" />
+      <div
+        className="pointer-events-none absolute -right-10 bottom-20 h-64 w-64 animate-float rounded-full bg-[#D4AF37]/20 blur-3xl"
+        style={{ animationDelay: "1.2s" }}
+      />
+      <div
+        className="pointer-events-none absolute left-1/2 top-1/3 h-40 w-40 -translate-x-1/2 animate-float rounded-full bg-[#0B1F3A]/10 blur-3xl"
+        style={{ animationDelay: "0.6s" }}
+      />
 
-      <header className="relative z-10 border-b border-white/60 bg-white/80 px-4 py-4 backdrop-blur-md sm:px-8">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <BrandLogo href="/" variant="dark" priority className="max-w-[260px] sm:max-w-[300px]" />
-          <Link
-            href="/"
-            className="rounded-full px-3 py-1.5 text-xs font-medium text-[#64748B] transition hover:bg-[#EFF6FF] hover:text-[#1D4ED8]"
-          >
-            Home
-          </Link>
-        </div>
-      </header>
-
-      <main className="relative z-10 flex flex-1 items-center justify-center p-4 sm:p-8">
-        <div className="grid w-full max-w-4xl animate-rise overflow-hidden rounded-3xl border border-[#E2E8F0] bg-white shadow-[0_20px_60px_-30px_rgba(30,58,138,0.45)] sm:grid-cols-[1.05fr_1fr]">
-          <div className="relative hidden overflow-hidden bg-gradient-to-br from-[#0B1F3A] via-[#12325C] to-[#1D4ED8] p-10 text-white sm:flex sm:flex-col sm:justify-between">
-            <div className="pointer-events-none absolute -right-16 top-10 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-            <div className="pointer-events-none absolute -bottom-10 left-6 h-40 w-40 rounded-full bg-sky-300/20 blur-2xl" />
-            <div className="relative">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-blue-100/90">
-                Rakshak EOMS
-              </p>
-              <h1 className="mt-5 font-heading text-3xl font-bold leading-tight">
-                {variant === "staff" ? "Welcome back" : "Employee Registration"}
-              </h1>
-              <p className="mt-3 max-w-xs text-sm leading-relaxed text-blue-100/85">
-                {variant === "staff"
-                  ? "Sign in with your role to continue securely."
-                  : "Complete the employment form to apply."}
-              </p>
-              {variant === "staff" && (
-                <ul className="mt-8 space-y-2.5 text-sm text-blue-50/90">
-                  <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-                    Role-based dashboards
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-                    Fast approvals & tracking
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-                    Secure staff access only
-                  </li>
-                </ul>
+      <div className="relative z-10 w-full max-w-[440px] animate-rise">
+        {showBackHome && (
+          <div className="mb-4 animate-fade-in">
+            <Link
+              href="/"
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full border border-[#D0DAE6] bg-white/90 px-3.5 py-2",
+                "text-sm font-medium text-[#334155] shadow-sm backdrop-blur-sm",
+                "transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:bg-white hover:text-[#0B1F3A] hover:shadow-md"
               )}
-            </div>
-            <p className="relative text-xs text-blue-100/70">
-              Authorized staff access · Rakshak Securitas
-            </p>
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to home
+            </Link>
           </div>
+        )}
 
-          <div className="flex w-full flex-col justify-center p-6 sm:p-10">
-            <div className="mb-6">
-              <h2 className="font-heading text-2xl font-bold text-[#0F172A]">
-                {variant === "staff" ? "Sign In" : "Employee Registration"}
-              </h2>
-              <p className="mt-1.5 text-sm text-[#64748B]">
-                {variant === "staff"
-                  ? "Select your role, then enter email and password."
-                  : "Complete the employment form to apply."}
-              </p>
+        <div className="overflow-hidden rounded-[1.6rem] border border-[#DCE5F0] bg-white/95 shadow-[0_28px_70px_-34px_rgba(11,31,58,0.5)] backdrop-blur-md">
+          <div className="h-1.5 w-full bg-gradient-to-r from-[#0B1F3A] via-[#0EA5E9] to-[#D4AF37]" />
+
+          <div className="px-7 pb-8 pt-7 sm:px-9 sm:pb-9 sm:pt-8">
+            <div className="mb-8 flex flex-col items-center text-center">
+              <div className="flex w-full justify-center rounded-2xl bg-gradient-to-b from-[#F8FBFF] to-white px-3 py-3 ring-1 ring-[#E8EEF6]">
+                <BrandLogo
+                  href="/"
+                  variant="dark"
+                  priority
+                  className="mx-auto w-full max-w-[270px] justify-center"
+                />
+              </div>
+              <h1 className="mt-6 font-heading text-[1.4rem] font-bold tracking-tight text-[#0B1F3A] sm:text-[1.5rem]">
+                {title}
+              </h1>
+              <div className="mt-2.5 h-1 w-12 rounded-full bg-gradient-to-r from-[#0EA5E9] to-[#D4AF37]" />
             </div>
+
             {children}
           </div>
         </div>
-      </main>
+
+        <p className="mt-5 animate-fade-in text-center text-xs text-[#94A3B8] stagger-3">
+          © {new Date().getFullYear()} Rakshak Securitas Pvt. Ltd.
+        </p>
+      </div>
     </div>
   );
 }

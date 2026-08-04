@@ -11,7 +11,7 @@ export default function ResetPasswordPage({
   searchParams: Promise<{ token?: string }>;
 }) {
   return (
-    <AuthLayoutShell variant="staff">
+    <AuthLayoutShell title="Reset Password">
       <ResetPasswordPageContent searchParams={searchParams} />
     </AuthLayoutShell>
   );

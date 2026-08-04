@@ -31,9 +31,9 @@ export function ProgressStepper({
         </span>
       </div>
 
-      <div className="h-2 w-full overflow-hidden rounded-full bg-[#E2E8F0]">
+      <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#E2E8F0]">
         <div
-          className="h-full rounded-full bg-accent transition-all duration-500"
+          className="h-full rounded-full bg-gradient-to-r from-accent to-[#F5D76E] transition-all duration-500"
           style={{ width: `${Math.max(progressPercent, 5)}%` }}
         />
       </div>
@@ -59,9 +59,9 @@ export function ProgressStepper({
             >
               <div
                 className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold",
-                  isCompleted && "bg-green-600 text-white",
-                  isCurrent && !isCompleted && "bg-primary text-white",
+                  "flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold shadow-sm transition",
+                  isCompleted && "bg-emerald-600 text-white",
+                  isCurrent && !isCompleted && "bg-primary text-white ring-4 ring-primary/15",
                   !isCurrent && !isCompleted && "bg-[#E2E8F0] text-[#64748B]"
                 )}
               >

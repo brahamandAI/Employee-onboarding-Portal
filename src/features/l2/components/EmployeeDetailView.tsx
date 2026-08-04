@@ -3,8 +3,23 @@ import { StatusBadge } from "@/features/l1/components/StatusBadge";
 import { L2ActionPanel } from "@/features/l2/components/L2ActionPanel";
 import { FieldChangesPanel } from "@/features/approval/components/FieldChangesPanel";
 import { EmployeeDocumentsFolderPanel } from "@/features/documents/components/EmployeeDocumentsFolderPanel";
+import { ApprovalTimeline } from "@/components/dashboard/ApprovalTimeline";
 import { EmployeeStatus } from "@/types/enums";
-import { ExternalLink } from "lucide-react";
+import {
+  ExternalLink,
+  LucideIcon,
+  User,
+  MapPin,
+  GraduationCap,
+  Users,
+  HeartHandshake,
+  FileText,
+  Shield,
+  History,
+  IdCard,
+  Contact,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface DocumentItem {
   documentType: string;
@@ -71,14 +86,25 @@ interface EmployeeDetailViewProps {
 function DetailSection({
   title,
   children,
+  icon: Icon,
+  className,
 }: {
   title: string;
   children: React.ReactNode;
+  icon?: LucideIcon;
+  className?: string;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
+    <Card className={cn("overflow-hidden", className)}>
+      <CardHeader className="bg-gradient-to-r from-[#F8FAFC] to-white">
+        <CardTitle className="flex items-center gap-2 text-base">
+          {Icon && (
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EFF6FF] text-[#1D4ED8]">
+              <Icon className="h-4 w-4" />
+            </span>
+          )}
+          {title}
+        </CardTitle>
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
@@ -124,18 +150,31 @@ export function EmployeeDetailView({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="font-heading text-2xl font-bold text-primary">
-          {fullName}
-        </h2>
-        <p className="text-[#64748B]">{employee.applicationRef}</p>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <StatusBadge status={employee.status} />
-          {employee.employeeId && (
-            <span className="font-mono text-sm text-primary">
-              ID: {employee.employeeId}
-            </span>
-          )}
+      <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#94A3B8]">
+              Employee summary
+            </p>
+            <h2 className="mt-1 font-heading text-2xl font-bold text-primary">
+              {fullName}
+            </h2>
+            <p className="mt-1 text-sm text-[#64748B]">{employee.applicationRef}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <StatusBadge status={employee.status} />
+              {employee.temporaryEmployeeId && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-800">
+                  <IdCard className="h-3.5 w-3.5" />
+                  Temp ID: {employee.temporaryEmployeeId}
+                </span>
+              )}
+              {employee.employeeId && (
+                <span className="font-mono text-sm text-primary">
+                  ID: {employee.employeeId}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -181,8 +220,12 @@ export function EmployeeDetailView({
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <DetailSection title="Contact">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <DetailSection title="Approval Timeline" icon={History} className="lg:col-span-1">
+          <ApprovalTimeline status={employee.status} />
+        </DetailSection>
+        <div className="grid gap-6 lg:col-span-2 lg:grid-cols-2">
+        <DetailSection title="Contact" icon={Contact}>
           <KeyValueGrid
             data={{
               email: employee.email,
@@ -195,43 +238,44 @@ export function EmployeeDetailView({
           />
         </DetailSection>
 
-        <DetailSection title="Personal Details">
+        <DetailSection title="Personal Details" icon={User}>
           <KeyValueGrid data={personal} />
         </DetailSection>
 
         {employee.address && (
-          <DetailSection title="Address">
+          <DetailSection title="Address" icon={MapPin}>
             <KeyValueGrid data={employee.address as Record<string, unknown>} />
           </DetailSection>
         )}
 
         {employee.nominee && (
-          <DetailSection title="Nominee">
+          <DetailSection title="Nominee" icon={HeartHandshake}>
             <KeyValueGrid data={employee.nominee} />
           </DetailSection>
         )}
 
         {employee.exServiceman && (
-          <DetailSection title="Ex Serviceman">
+          <DetailSection title="Ex Serviceman" icon={Shield}>
             <KeyValueGrid data={employee.exServiceman} />
           </DetailSection>
         )}
 
         {employee.gunman && (
-          <DetailSection title="Gunman">
+          <DetailSection title="Gunman" icon={Shield}>
             <KeyValueGrid data={employee.gunman} />
           </DetailSection>
         )}
 
         {employee.additionalDetails && (
-          <DetailSection title="Additional Details">
+          <DetailSection title="Additional Details" icon={FileText}>
             <KeyValueGrid data={employee.additionalDetails} />
           </DetailSection>
         )}
+        </div>
       </div>
 
       {employee.education && (
-        <DetailSection title="Education">
+        <DetailSection title="Education" icon={GraduationCap}>
           {Array.isArray(employee.education) ? (
             <div className="space-y-4">
               {employee.education.map((edu, i) => (
@@ -245,7 +289,7 @@ export function EmployeeDetailView({
       )}
 
       {employee.references && employee.references.length > 0 && (
-        <DetailSection title="References">
+        <DetailSection title="References" icon={Users}>
           <div className="space-y-4">
             {employee.references.map((ref, i) => (
               <KeyValueGrid key={i} data={ref} />
@@ -255,7 +299,7 @@ export function EmployeeDetailView({
       )}
 
       {employee.familyDetails && employee.familyDetails.length > 0 && (
-        <DetailSection title="Family Details">
+        <DetailSection title="Family Details" icon={Users}>
           <div className="space-y-4">
             {employee.familyDetails.map((member, i) => (
               <KeyValueGrid key={i} data={member} />
@@ -264,7 +308,7 @@ export function EmployeeDetailView({
         </DetailSection>
       )}
 
-      <DetailSection title="Documents">
+      <DetailSection title="Uploaded Documents" icon={FileText}>
         {documents.length === 0 ? (
           <p className="text-sm text-[#64748B]">No documents uploaded.</p>
         ) : (
@@ -289,21 +333,25 @@ export function EmployeeDetailView({
       </DetailSection>
 
       {(employee.temporaryEmployeeId ||
+        employee.status === EmployeeStatus.L2_REVIEW ||
         [
           EmployeeStatus.APPROVED,
           EmployeeStatus.ID_GENERATED,
           EmployeeStatus.ID_CARD_ISSUED,
         ].includes(employee.status)) && (
-        <EmployeeDocumentsFolderPanel employeeId={employee._id} />
+        <EmployeeDocumentsFolderPanel
+          employeeId={employee._id}
+          showWhenEmpty={employee.status === EmployeeStatus.L2_REVIEW}
+        />
       )}
 
       {history.length > 0 && (
-        <DetailSection title="Approval History">
+        <DetailSection title="Approval History" icon={History}>
           <div className="space-y-3">
             {history.map((item, i) => (
               <div
                 key={i}
-                className="flex flex-wrap items-start justify-between gap-2 border-b border-[#E2E8F0] pb-3 last:border-0"
+                className="flex flex-wrap items-start justify-between gap-2 rounded-xl border border-[#F1F5F9] bg-[#F8FAFC]/80 px-3 py-3"
               >
                 <div>
                   <p className="text-sm font-medium text-primary">
@@ -326,7 +374,7 @@ export function EmployeeDetailView({
         </DetailSection>
       )}
 
-      <section className="mt-2 space-y-3 border-t border-[#E2E8F0] pt-6">
+      <section className="mt-2 space-y-3 rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:p-6">
         <div>
           <h3 className="font-heading text-lg font-semibold text-primary">
             Review Decision

@@ -5,7 +5,6 @@ import { SectionBanner } from "@/components/marketing/SectionBanner";
 import { HeroSection } from "@/components/marketing/home/HeroSection";
 import { HomeApplicationOverview } from "@/components/marketing/home/HomeApplicationOverview";
 import { PlatformFeaturesSection } from "@/components/marketing/home/PlatformFeaturesSection";
-import { PortalRolesSection } from "@/components/marketing/home/PortalRolesSection";
 import { StatsSection } from "@/components/marketing/home/StatsSection";
 import { AboutSection } from "@/components/marketing/home/AboutSection";
 import { ServicesShowcase } from "@/components/marketing/home/ServicesShowcase";
@@ -47,7 +46,6 @@ export function MarketingPage() {
       <StatsSection />
       <HomeApplicationOverview />
       <PlatformFeaturesSection />
-      <PortalRolesSection />
     </>
   );
 }

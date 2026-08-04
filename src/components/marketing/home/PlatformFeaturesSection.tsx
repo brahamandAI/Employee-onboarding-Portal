@@ -22,8 +22,8 @@ export function PlatformFeaturesSection() {
             Everything You Need to Hire & Onboard
           </h2>
           <p className="mt-4 text-[#64748B]">
-            A complete digital platform — from applicant registration and document collection
-            to multi-level approval and ID card issuance.
+            Registration, document capture, L1/L2 decisions, Temporary Employee ID, and
+            Employee Documents folders — in one secure system.
           </p>
         </div>
 

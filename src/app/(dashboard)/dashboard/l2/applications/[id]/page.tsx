@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireStaffAuth } from "@/lib/auth/guards";
 import { UserRole } from "@/types/enums";
 import { getEmployeeDetailForReview } from "@/lib/services/approval.service";
 import { EmployeeDetailView } from "@/features/l2/components/EmployeeDetailView";
-import { ArrowLeft } from "lucide-react";
+import { DashboardBackLink } from "@/components/dashboard/DashboardBackLink";
 
 export const metadata = { title: "Application Details | L2" };
 
@@ -25,13 +24,7 @@ export default async function L2EmployeeDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-4">
-      <Link
-        href="/dashboard/l2/applications/pending"
-        className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to applications
-      </Link>
+      <DashboardBackLink href="/dashboard/l2/applications/pending" label="Back to applications" />
       <EmployeeDetailView
         employee={{
           _id: String(employee._id),

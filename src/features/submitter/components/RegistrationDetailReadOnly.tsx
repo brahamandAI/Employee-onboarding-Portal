@@ -25,7 +25,7 @@ interface RegistrationDetailReadOnlyProps {
   };
   documents: Array<{ documentType: string; fileName: string; url: string }>;
   history?: ApprovalTimelineItem[];
-  /** Show employee documents folder panel (Admin / Support after L2) */
+  /** Show employee documents folder panel after L2 approval */
   showDocumentsFolder?: boolean;
 }
 

@@ -8,11 +8,11 @@ import { MotionReveal } from "@/components/marketing/MotionReveal";
 import { SectionHeading } from "@/components/marketing/SectionHeading";
 
 const STAT_COLORS = [
-  "from-blue-500 to-blue-700",
-  "from-emerald-500 to-emerald-700",
-  "from-violet-500 to-violet-700",
+  "from-sky-500 to-sky-700",
+  "from-teal-500 to-teal-700",
   "from-amber-500 to-amber-700",
-  "from-rose-500 to-rose-700",
+  "from-[#0B1F3A] to-[#12325C]",
+  "from-emerald-500 to-emerald-700",
 ];
 
 function AnimatedCounter({
@@ -65,9 +65,9 @@ export function StatsSection({ embedded = false }: { embedded?: boolean }) {
           <MotionReveal>
             <SectionHeading
               align="center"
-              eyebrow="Platform Overview"
-              title="Employee Onboarding at a Glance"
-              description="A streamlined digital system designed for security workforce hiring, verification, and compliance."
+              eyebrow="Platform overview"
+              title="Onboarding at a glance"
+              description="Submitter registration, L1/L2 approvals, Temporary Employee ID, and automatic Employee Documents folders."
             />
           </MotionReveal>
         )}
@@ -76,7 +76,7 @@ export function StatsSection({ embedded = false }: { embedded?: boolean }) {
             <MotionReveal key={stat.id} delay={i * 80}>
               <motion.div
                 whileHover={{ scale: 1.04, y: -4 }}
-                className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white text-center shadow-sm"
+                className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white text-center shadow-sm transition hover:border-sky-200 hover:shadow-glow"
               >
                 <div className={cn("h-1.5 bg-gradient-to-r", STAT_COLORS[i % STAT_COLORS.length])} />
                 <div className="p-6">

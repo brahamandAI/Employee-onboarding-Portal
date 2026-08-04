@@ -10,18 +10,21 @@ import { cn } from "@/lib/utils";
 
 export function PortalRolesSection() {
   return (
-    <section className="bg-gradient-to-br from-primary via-[#0d2847] to-primary py-16 lg:py-24">
-      <div className="mx-auto max-w-7xl px-4 lg:px-8">
+    <section className="relative overflow-hidden py-16 lg:py-24">
+      <div className="marketing-mesh absolute inset-0" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(14,165,233,0.12),transparent_50%)]" />
+
+      <div className="relative mx-auto max-w-7xl px-4 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-            Portals
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">
+            Who uses the portal
           </p>
           <h2 className="mt-3 font-heading text-3xl font-bold text-white md:text-4xl">
-            Built for Every Role
+            Built for every role in the workflow
           </h2>
           <p className="mt-4 text-white/70">
-            Separate secure portals for applicants, reviewers, approvers, and administrators —
-            each with the tools they need.
+            Each role gets a focused dashboard — queues, actions, Excel exports, and document
+            folders that match their permissions.
           </p>
         </div>
 
@@ -29,11 +32,12 @@ export function PortalRolesSection() {
           {PORTAL_ROLES.map((portal, index) => (
             <motion.div
               key={portal.role}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 22 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.08 }}
-              className="flex flex-col rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
+              whileHover={{ y: -6 }}
+              className="flex flex-col rounded-2xl border border-white/12 bg-white/8 p-6 shadow-soft backdrop-blur-md"
             >
               <div
                 className={cn(

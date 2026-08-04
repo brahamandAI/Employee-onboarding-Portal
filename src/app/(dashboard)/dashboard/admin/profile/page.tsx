@@ -2,8 +2,7 @@ import { requireStaffAuth } from "@/lib/auth/guards";
 import { UserRole } from "@/types/enums";
 import { connectDB } from "@/lib/db/connect";
 import { User } from "@/lib/db/models/User";
-import { AdminPageHeader } from "@/features/admin/components/AdminPageHeader";
-import { ProfileEditForm } from "@/features/admin/components/ProfileEditForm";
+import { ProfilePageView } from "@/features/auth/components/ProfilePageView";
 
 export const metadata = { title: "Profile | Admin" };
 
@@ -18,21 +17,14 @@ export default async function AdminProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <AdminPageHeader
-        title="Profile"
-        description="View and update your account information."
-      />
-      <ProfileEditForm
-        user={{
-          name: dbUser.name,
-          email: dbUser.email,
-          role: dbUser.role,
-          department: dbUser.department,
-          phone: dbUser.phone,
-          lastLoginAt: dbUser.lastLoginAt?.toISOString(),
-        }}
-      />
-    </div>
+    <ProfilePageView
+      backHref="/dashboard/admin"
+      name={dbUser.name}
+      email={dbUser.email}
+      role={dbUser.role}
+      department={dbUser.department}
+      phone={dbUser.phone}
+      lastLoginAt={dbUser.lastLoginAt}
+    />
   );
 }

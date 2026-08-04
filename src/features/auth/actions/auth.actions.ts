@@ -15,12 +15,15 @@ import {
   staffLoginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  changePasswordSchema,
   employeeLoginSchema,
   employeeOtpSchema,
 } from "@/features/auth/schemas/auth.schema";
 import { STAFF_ROLE_LABELS } from "@/features/auth/constants";
 import { ROLE_DASHBOARD_PATH } from "@/types/enums";
 import { canAccessRoute } from "@/lib/auth/permissions";
+import { requireStaffAuth } from "@/lib/auth/guards";
+import { hashPassword, verifyPassword } from "@/lib/auth/password";
 
 export type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -263,6 +266,50 @@ export async function resetPasswordAction(
     if (error instanceof AuthError) {
       return { success: false, error: error.message, code: error.code };
     }
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function changePasswordAction(
+  formData: FormData
+): Promise<ActionResult> {
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: formData.get("currentPassword"),
+    newPassword: formData.get("newPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.errors[0]?.message ?? "Invalid input",
+    };
+  }
+
+  try {
+    const { user } = await requireStaffAuth();
+    await connectDB();
+    const dbUser = await User.findById(user.id);
+    if (!dbUser) {
+      return { success: false, error: "User not found" };
+    }
+
+    const valid = await verifyPassword(
+      parsed.data.currentPassword,
+      dbUser.passwordHash
+    );
+    if (!valid) {
+      return { success: false, error: "Current password is incorrect" };
+    }
+
+    dbUser.passwordHash = await hashPassword(parsed.data.newPassword);
+    dbUser.passwordChangedAt = new Date();
+    dbUser.resetPasswordToken = undefined;
+    dbUser.resetPasswordExpires = undefined;
+    await dbUser.save();
+
+    return { success: true };
+  } catch {
     return { success: false, error: "An unexpected error occurred" };
   }
 }

@@ -1,12 +1,11 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { requireStaffAuth } from "@/lib/auth/guards";
 import { UserRole, EmployeeStatus } from "@/types/enums";
 import { getSubmitterRegistrationDetail } from "@/lib/services/submitter.service";
 import { RegistrationDetailReadOnly } from "@/features/submitter/components/RegistrationDetailReadOnly";
 import { OpenRegistrationEditButton } from "@/features/submitter/components/OpenRegistrationEditButton";
 import { getRegistrationStatusLabel } from "@/features/application-status/constants";
+import { DashboardBackLink } from "@/components/dashboard/DashboardBackLink";
 
 export const metadata = { title: "Registration Details | Submitter" };
 
@@ -34,13 +33,10 @@ export default async function SubmitterRegistrationDetailPage({ params }: PagePr
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link
+        <DashboardBackLink
           href="/dashboard/submitter/registrations"
-          className="inline-flex items-center gap-1 text-sm text-primary transition hover:gap-2 hover:underline"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to all registrations
-        </Link>
+          label="Back to all registrations"
+        />
         {canEdit && <OpenRegistrationEditButton employeeId={String(employee._id)} />}
       </div>
 
@@ -56,6 +52,8 @@ export default async function SubmitterRegistrationDetailPage({ params }: PagePr
       </div>
 
       <RegistrationDetailReadOnly
+        employeeId={String(employee._id)}
+        showDocumentsFolder={Boolean(employee.temporaryEmployeeId)}
         employee={{
           applicationRef: employee.applicationRef,
           status: String(employee.status),

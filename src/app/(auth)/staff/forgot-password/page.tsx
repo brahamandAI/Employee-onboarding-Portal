@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function ForgotPasswordPage() {
   return (
-    <AuthLayoutShell variant="staff">
+    <AuthLayoutShell title="Forgot Password">
       <ForgotPasswordForm />
     </AuthLayoutShell>
   );

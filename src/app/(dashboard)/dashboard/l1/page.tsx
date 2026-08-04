@@ -1,4 +1,10 @@
 import Link from "next/link";
+import {
+  CheckCircle2,
+  Clock3,
+  RotateCcw,
+  XCircle,
+} from "lucide-react";
 import { requireStaffAuth } from "@/lib/auth/guards";
 import { UserRole } from "@/types/enums";
 import { getL1Stats, getL1RecentPending } from "@/lib/services/l1.service";
@@ -24,7 +30,7 @@ export default async function L1DashboardPage() {
     <div className="space-y-6">
       <DashboardPageHeader
         title="L1 Review"
-        description={`Welcome back, ${user.name}. Review and approve pending registrations.`}
+        description="Review and approve pending registrations."
         actions={<DownloadExcelButton scope="l1" />}
       />
 
@@ -32,37 +38,42 @@ export default async function L1DashboardPage() {
         <DashboardStatCard
           title="Pending"
           value={stats.pending}
+          description="Waiting for L1 decision"
           href="/dashboard/l1/applications/pending"
           linkLabel="Open queue"
           tone="blue"
-          className="stagger-1"
+          icon={Clock3}
         />
         <DashboardStatCard
           title="Approved"
           value={stats.approved}
+          description="Forwarded to L2"
           href="/dashboard/l1/applications/approved"
           linkLabel="History"
           tone="green"
-          className="stagger-2"
+          icon={CheckCircle2}
         />
         <DashboardStatCard
           title="Reversed"
           value={stats.rejected}
+          description="Returned for correction"
           href="/dashboard/l1/applications/rejected"
           linkLabel="View"
           tone="red"
-          className="stagger-3"
+          icon={XCircle}
         />
         <DashboardStatCard
           title="Returned today"
           value={stats.returnedToday}
+          description="Corrections requested today"
           tone="amber"
-          className="stagger-4"
+          icon={RotateCcw}
         />
       </div>
 
       <DashboardSection
         title="Recent pending"
+        icon={Clock3}
         action={
           <Link
             href="/dashboard/l1/applications/pending"
@@ -74,7 +85,7 @@ export default async function L1DashboardPage() {
       >
         <ApplicationTable
           applications={recent}
-          emptyMessage="No pending applications right now."
+          emptyMessage="No pending applications right now"
         />
       </DashboardSection>
     </div>

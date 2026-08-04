@@ -12,6 +12,7 @@ export function StaffLoginForm() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const callbackUrl = searchParams.get("callbackUrl") ?? "";
   const portalRole = searchParams.get("role") ?? UserRole.SUBMITTER;
   const [role, setRole] = useState(portalRole);
@@ -19,6 +20,7 @@ export function StaffLoginForm() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsLoading(true);
+    setFormError(null);
 
     const formData = new FormData(e.currentTarget);
     if (callbackUrl) {
@@ -30,19 +32,22 @@ export function StaffLoginForm() {
     if (result.success && result.data?.redirectTo) {
       window.location.assign(result.data.redirectTo);
       return;
-    } else if (!result.success) {
-      toast({
-        title: "Login failed",
-        description: result.error ?? "Invalid credentials",
-        variant: "destructive",
-      });
     }
 
+    const message = result.success
+      ? "Unable to sign in"
+      : (result.error ?? "Invalid credentials");
+    setFormError(message);
+    toast({
+      title: "Login failed",
+      description: message,
+      variant: "destructive",
+    });
     setIsLoading(false);
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-1">
+    <form onSubmit={handleSubmit} className="space-y-0" noValidate>
       <StaffSignInFormFields
         idPrefix="page-"
         role={role}
@@ -50,12 +55,22 @@ export function StaffLoginForm() {
         isLoading={isLoading}
       />
 
+      {formError && (
+        <div
+          role="alert"
+          className="mt-5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm font-medium text-red-700"
+        >
+          {formError}
+        </div>
+      )}
+
       <Button
         type="submit"
-        className="mt-6 h-11 w-full rounded-xl bg-[#1D4ED8] text-sm font-semibold text-white shadow-md shadow-blue-600/20 hover:bg-[#1E40AF]"
+        variant="default"
+        className="mt-7 h-12 w-full text-[0.95rem] shadow-lg shadow-[#0B1F3A]/20 hover:shadow-xl hover:shadow-[#0B1F3A]/25"
         isLoading={isLoading}
       >
-        Sign In
+        {isLoading ? "Signing in…" : "Sign In"}
       </Button>
     </form>
   );

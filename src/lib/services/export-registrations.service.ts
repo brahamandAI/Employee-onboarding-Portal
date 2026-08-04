@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/db/connect";
 import { Employee } from "@/lib/db/models/Employee";
+import { EmployeeDocument } from "@/lib/db/models/EmployeeDocument";
 import { UserRole } from "@/types/enums";
 import {
   L1_PENDING_FILTER,
@@ -11,10 +12,22 @@ import {
   RegistrationExportSource,
 } from "@/lib/export/registrations-excel";
 import { EmployeeStatus } from "@/types/enums";
+import { DOCUMENT_LABELS, DocumentType } from "@/features/onboarding/constants";
+import mongoose from "mongoose";
 
 export type ExportScope = "l1" | "l2" | "admin";
 
-function mapLeanToExport(emp: Record<string, unknown>): RegistrationExportSource {
+type DocSummary = {
+  summary: string;
+  fileNames: string;
+  urls: string;
+};
+
+function mapLeanToExport(
+  emp: Record<string, unknown>,
+  docs?: DocSummary
+): RegistrationExportSource {
+  const folder = (emp.documentsFolder as Record<string, unknown> | undefined) ?? {};
   return {
     applicationRef: emp.applicationRef as string | undefined,
     status: emp.status as string | undefined,
@@ -25,7 +38,10 @@ function mapLeanToExport(emp: Record<string, unknown>): RegistrationExportSource
     submittedAt: emp.submittedAt as Date | undefined,
     l1ApprovedAt: emp.l1ApprovedAt as Date | undefined,
     approvedAt: emp.approvedAt as Date | undefined,
+    idGeneratedAt: emp.idGeneratedAt as Date | undefined,
+    forwardedToAdminAt: emp.forwardedToAdminAt as Date | undefined,
     correctionNotes: emp.correctionNotes as string | undefined,
+    rejectionReason: emp.rejectionReason as string | undefined,
     personalDetails: (emp.personalDetails as Record<string, unknown>) ?? {},
     address: (emp.address as Record<string, unknown>) ?? {},
     education: (emp.education as Record<string, unknown>) ?? {},
@@ -36,10 +52,49 @@ function mapLeanToExport(emp: Record<string, unknown>): RegistrationExportSource
     gunman: (emp.gunman as Record<string, unknown>) ?? {},
     additionalDetails: (emp.additionalDetails as Record<string, unknown>) ?? {},
     declaration: (emp.declaration as Record<string, unknown>) ?? {},
+    documentsSummary: docs?.summary,
+    documentFileNames: docs?.fileNames,
+    documentUrls: docs?.urls,
+    documentsFolderName: folder.folderName as string | undefined,
+    documentsFolderPath: folder.folderPath as string | undefined,
     submittedBy: emp.submittedBy as { name?: string; email?: string } | null,
     l1Decision: emp.l1Decision as RegistrationExportSource["l1Decision"],
     l2Decision: emp.l2Decision as RegistrationExportSource["l2Decision"],
   };
+}
+
+async function fetchDocumentsByEmployee(
+  employeeIds: mongoose.Types.ObjectId[]
+): Promise<Map<string, DocSummary>> {
+  const map = new Map<string, DocSummary>();
+  if (employeeIds.length === 0) return map;
+
+  const docs = await EmployeeDocument.find({
+    employeeId: { $in: employeeIds },
+    isActive: true,
+  })
+    .select("employeeId documentType fileName url")
+    .lean();
+
+  const grouped = new Map<string, typeof docs>();
+  for (const doc of docs) {
+    const key = String(doc.employeeId);
+    const list = grouped.get(key) ?? [];
+    list.push(doc);
+    grouped.set(key, list);
+  }
+
+  for (const [key, list] of grouped) {
+    map.set(key, {
+      summary: list
+        .map((d) => DOCUMENT_LABELS[d.documentType as DocumentType] ?? d.documentType)
+        .join("; "),
+      fileNames: list.map((d) => d.fileName).join("; "),
+      urls: list.map((d) => d.url).join("; "),
+    });
+  }
+
+  return map;
 }
 
 async function fetchForScope(scope: ExportScope, userId: string) {
@@ -52,7 +107,6 @@ async function fetchForScope(scope: ExportScope, userId: string) {
   ];
 
   if (scope === "l1") {
-    // All forms L1 can work with: pending, approved by them, returned
     const items = await Employee.find({
       $or: [
         L1_PENDING_FILTER,
@@ -92,7 +146,6 @@ async function fetchForScope(scope: ExportScope, userId: string) {
     return items;
   }
 
-  // admin — only L2-approved registrations forwarded to admin
   const items = await Employee.find(ADMIN_REGISTRATIONS_FILTER)
     .populate(populate)
     .sort({ forwardedToAdminAt: -1 })
@@ -101,12 +154,22 @@ async function fetchForScope(scope: ExportScope, userId: string) {
   return items;
 }
 
+async function mapWithDocuments(items: Record<string, unknown>[]) {
+  const ids = items
+    .map((item) => item._id)
+    .filter(Boolean) as mongoose.Types.ObjectId[];
+  const docsMap = await fetchDocumentsByEmployee(ids);
+  return items.map((item) =>
+    mapLeanToExport(item, docsMap.get(String(item._id)))
+  );
+}
+
 export async function exportRegistrationsExcel(
   scope: ExportScope,
   userId: string
 ): Promise<{ filename: string; xml: string; count: number }> {
   const items = await fetchForScope(scope, userId);
-  const rows = items.map((item) => mapLeanToExport(item as unknown as Record<string, unknown>));
+  const rows = await mapWithDocuments(items as unknown as Record<string, unknown>[]);
   const xml = buildRegistrationsExcelXml(rows);
   const date = new Date().toISOString().slice(0, 10);
   return {
@@ -126,7 +189,7 @@ export async function previewRegistrationsExport(
 }> {
   const { getExportPreviewRows } = await import("@/lib/export/registrations-excel");
   const items = await fetchForScope(scope, userId);
-  const mapped = items.map((item) => mapLeanToExport(item as unknown as Record<string, unknown>));
+  const mapped = await mapWithDocuments(items as unknown as Record<string, unknown>[]);
   return getExportPreviewRows(mapped, 25);
 }
 

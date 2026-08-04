@@ -8,11 +8,11 @@ export const SITE = {
   legalName: "Rakshak Securitas Pvt Ltd",
   shortName: "Rakshak Securitas",
   name: "Rakshak Securitas",
-  tagline: "Secure Operations. Trusted People. Digital Excellence.",
+  tagline: "Digital Employee Onboarding — Fast, Secure, Audit-Ready",
   intro:
-    "Rakshak Securitas delivers professional security and facility management services across India. Our Employee Onboarding Management System (EOMS) streamlines hiring — from digital employment forms and document verification to L1/L2 approval and ID card issuance.",
+    "Register employees online, verify documents, approve through L1 and L2, generate Temporary Employee IDs, and organize every file into Employee Documents — all in one secure portal.",
   description:
-    "Rakshak Securitas EOMS — digital employee onboarding, application tracking, document uploads, L1/L2 approval workflow, and secure ID card generation for security workforce management.",
+    "Rakshak Securitas Employee Onboarding Portal — multi-step registration, document uploads, L1/L2 approvals, Temporary Employee ID generation, Employee Documents folders, and role-based dashboards.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXTAUTH_URL ?? "https://www.rakshaksecuritas.com",
   email: "recruitment@rakshaksecuritas.com",
   generalEmail: "admin@rakshaksecuritas.com",
@@ -28,81 +28,85 @@ export const SITE = {
 /** Core platform capabilities shown on the home page */
 export const PLATFORM_FEATURES = [
   {
-    title: "Digital Employment Form",
+    title: "Multi-Section Registration",
     description:
-      "7-section online form matching the official paper employment application — applicant details, references, family, nominee, additional particulars, documents, and declaration.",
+      "Submitters complete a guided 7-section employment form — personal details, references, family, nominee, additional particulars, documents, and declaration.",
     icon: "FileText",
-    color: "from-primary to-primary-hover",
+    color: "from-[#0B1F3A] to-[#12325C]",
   },
   {
-    title: "Auto-Save & Progress",
+    title: "Secure Document Uploads",
     description:
-      "Applications save automatically at every step. Applicants can pause and resume anytime from the employee portal.",
-    icon: "Save",
-    color: "from-[#0f2d4a] to-primary",
-  },
-  {
-    title: "Document Uploads",
-    description:
-      "Secure upload of Aadhaar, PAN, photo, bank passbook, certificates, and more — stored safely in the cloud.",
+      "Aadhaar, PAN, photo, bank proof, certificates, and more — stored securely and later organized into each employee folder.",
     icon: "Upload",
-    color: "from-accent to-[#b8941f]",
+    color: "from-[#0EA5E9] to-[#0284C7]",
   },
   {
-    title: "L1 / L2 Approval",
+    title: "L1 Review & Reverse",
     description:
-      "Structured review workflow — L1 verification, employee ID generation, L2 final approval, and support operations.",
-    icon: "CheckCircle",
-    color: "from-primary-hover to-[#0a1f38]",
+      "L1 verifies details and documents, then approves to L2 or reverses to the submitter with a clear correction note.",
+    icon: "Search",
+    color: "from-[#0F766E] to-[#0B1F3A]",
   },
   {
-    title: "Application Tracking",
+    title: "L2 Final Approval",
     description:
-      "Real-time status timeline for applicants — see exactly where your application is in the review process.",
-    icon: "Clock",
-    color: "from-[#1a3a5c] to-primary-hover",
+      "L2 gives final approval, generates Temporary Employee ID, can send back to L1, or reverse to the submitter.",
+    icon: "BadgeCheck",
+    color: "from-[#D4AF37] to-[#B8941F]",
   },
   {
-    title: "Digital ID Cards",
+    title: "Employee Documents Folders",
     description:
-      "Official employee ID cards with QR verification, generated after full approval and available for download.",
-    icon: "CreditCard",
-    color: "from-[#b8941f] to-accent",
+      "After L2 approval, all uploads move into Employee Documents / TEMP ID - Name for Admin, Support, L2, and the submitter.",
+    icon: "FolderOpen",
+    color: "from-[#12325C] to-[#0EA5E9]",
+  },
+  {
+    title: "Role-Based Dashboards",
+    description:
+      "Submitter, L1, L2, Admin, and Support each get the queues, Excel exports, and folders they are allowed to access.",
+    icon: "LayoutDashboard",
+    color: "from-[#0B1F3A] to-[#0F766E]",
   },
 ] as const;
 
 export const PORTAL_ROLES = [
   {
-    role: "Employee Portal",
-    description: "Register, complete employment form, upload documents, track status, download ID card.",
-    href: "/apply",
-    cta: "Employee Registration",
-    icon: "User",
-    accent: "bg-blue-500",
+    role: "Registration Submitter",
+    description:
+      "Create and edit registrations, upload documents, resubmit after reverse notes, and view your own employee folders.",
+    href: "/staff/login",
+    cta: "Submitter Login",
+    icon: "UserPlus",
+    accent: "bg-sky-500",
   },
   {
-    role: "L1 Reviewer",
-    description: "Review applications, verify documents, approve or return for corrections.",
+    role: "L1 Approver",
+    description:
+      "Review pending registrations, verify documents, approve to L2, or reverse with notes for correction.",
     href: "/staff/login",
-    cta: "Staff Login",
+    cta: "L1 Login",
     icon: "Search",
-    accent: "bg-emerald-500",
+    accent: "bg-teal-600",
   },
   {
     role: "L2 Approver",
-    description: "Final management approval before ID card generation and onboarding completion.",
+    description:
+      "Final approval, Temporary Employee ID generation, send back to L1, or reverse to submitter.",
     href: "/staff/login",
-    cta: "Staff Login",
+    cta: "L2 Login",
     icon: "BadgeCheck",
-    accent: "bg-violet-500",
+    accent: "bg-[#D4AF37]",
   },
   {
-    role: "Support Admin",
-    description: "ID card generation, user management, departments, audit logs, and system settings.",
+    role: "Admin & Support",
+    description:
+      "Admin manages users and approved records; Support accesses L2-approved folders and employee documents.",
     href: "/staff/login",
     cta: "Staff Login",
     icon: "Settings",
-    accent: "bg-amber-500",
+    accent: "bg-[#0B1F3A]",
   },
 ] as const;
 
@@ -129,36 +133,36 @@ export const SOCIAL_LINKS = [
 ] as const;
 
 export const COMPANY_STATS = [
-  { id: "sections", label: "Registration Sections", displayValue: "7", numericValue: 7, suffix: "" },
-  { id: "documents", label: "Required Documents", displayValue: "10", numericValue: 10, suffix: "+" },
-  { id: "roles", label: "Portal Roles", displayValue: "4", numericValue: 4, suffix: "" },
-  { id: "workflow", label: "Approval Stages", displayValue: "9", numericValue: 9, suffix: "" },
+  { id: "sections", label: "Form Sections", displayValue: "7", numericValue: 7, suffix: "" },
+  { id: "roles", label: "Staff Roles", displayValue: "5", numericValue: 5, suffix: "" },
+  { id: "stages", label: "Approval Path", displayValue: "L1→L2", numericValue: null as number | null, suffix: "" },
+  { id: "folder", label: "Document Folders", displayValue: "Auto", numericValue: null as number | null, suffix: "" },
   {
     id: "portal",
-    label: "Secure Cloud Based Employee Onboarding",
-    displayValue: "Cloud",
+    label: "Cloud Onboarding Portal",
+    displayValue: "Live",
     numericValue: null as number | null,
     suffix: "",
   },
 ] as const;
 
 export const PORTAL_ROLES_LIST = [
-  "Employee",
+  "Registration Submitter",
   "L1 Approver",
   "L2 Approver",
-  "Support Team",
+  "Support",
+  "Super Admin",
 ] as const;
 
 export const APPROVAL_STAGES_LIST = [
   "Draft",
   "Submitted",
   "Pending L1",
-  "L1 Approved",
-  "Employee Number Generated",
+  "L1 Approved → L2",
   "Pending L2",
-  "L2 Approved",
-  "ID Card Generated",
-  "Completed",
+  "L2 Approved + Temp ID",
+  "Employee Documents Folder",
+  "Sent to Admin / Support",
 ] as const;
 
 export const ABOUT_CONTENT = {
@@ -223,12 +227,12 @@ export const ABOUT_CONTENT = {
 } as const;
 
 export const COMPANY_HIGHLIGHTS = [
-  { title: "Digital Employee Onboarding", icon: "Laptop", description: "End-to-end online hiring from registration to joining." },
-  { title: "Paperless Registration", icon: "FileCheck", description: "Replace manual forms with a secure digital employment application." },
-  { title: "Secure Document Verification", icon: "Shield", description: "Upload and verify identity, education, and compliance documents online." },
-  { title: "Role Based Approval Workflow", icon: "GitBranch", description: "Structured L1 and L2 review with audit-ready decision tracking." },
-  { title: "Employee ID Generation", icon: "Hash", description: "Unique employee numbers assigned automatically after L1 approval." },
-  { title: "Digital ID Card Management", icon: "CreditCard", description: "Official ID cards generated, issued, and verified through the portal." },
+  { title: "Digital Employee Registration", icon: "Laptop", description: "Submitters register employees online with a guided multi-section form." },
+  { title: "Paperless Document Capture", icon: "FileCheck", description: "Upload identity, bank, education, and compliance documents securely." },
+  { title: "L1 & L2 Approval Workflow", icon: "GitBranch", description: "Approve, reverse, or send back with notes — every decision is tracked." },
+  { title: "Temporary Employee ID", icon: "Hash", description: "Generated automatically when L2 approves the registration." },
+  { title: "Employee Documents Folders", icon: "FolderOpen", description: "All uploads organized under Employee Documents / TEMP ID - Name." },
+  { title: "Role-Based Access", icon: "Shield", description: "Submitter, L1, L2, Admin, and Support see only what they are allowed to." },
 ] as const;
 
 export const WHY_CHOOSE = [
@@ -346,24 +350,51 @@ export const SERVICES = [
 ] as const;
 
 export const RECRUITMENT_STEPS = [
-  { step: 1, title: "Employee Registration", description: "Create your account with basic contact details to begin the application.", icon: "UserPlus" },
-  { step: 2, title: "Fill Employment Form", description: "Complete the digital employment form with personal, family, and nominee details.", icon: "FileText" },
-  { step: 3, title: "Upload Documents", description: "Submit required identity, education, and supporting documents securely online.", icon: "Upload" },
-  { step: 4, title: "L1 Verification", description: "L1 reviewer validates your application and documents for completeness.", icon: "Search" },
-  { step: 5, title: "Employee ID Generation", description: "Upon L1 approval, a unique employee number is generated automatically.", icon: "Hash" },
-  { step: 6, title: "L2 Approval", description: "L2 approver conducts final review before forwarding to support operations.", icon: "CheckCircle" },
-  { step: 7, title: "ID Card Generation", description: "Support team generates your official employee ID card with QR verification.", icon: "CreditCard" },
-  { step: 8, title: "Successfully Onboarded", description: "Receive confirmation and access your employee portal and ID card download.", icon: "BadgeCheck" },
+  {
+    step: 1,
+    title: "Submit Registration",
+    description: "Submitter fills the 7-section form and uploads required documents.",
+    icon: "UserPlus",
+  },
+  {
+    step: 2,
+    title: "L1 Review",
+    description: "L1 verifies details & documents — approve to L2 or reverse with notes.",
+    icon: "Search",
+  },
+  {
+    step: 3,
+    title: "L2 Final Approval",
+    description: "L2 approves, sends back to L1, or reverses to the submitter.",
+    icon: "CheckCircle",
+  },
+  {
+    step: 4,
+    title: "Temp Employee ID",
+    description: "On L2 approve, a Temporary Employee ID is generated automatically.",
+    icon: "Hash",
+  },
+  {
+    step: 5,
+    title: "Document Folder",
+    description: "Files move into Employee Documents / TEMP ID - Employee Name.",
+    icon: "FolderOpen",
+  },
+  {
+    step: 6,
+    title: "Admin & Support",
+    description: "Approved records and folders are available to Admin and Support.",
+    icon: "BadgeCheck",
+  },
 ] as const;
 
 export const ONBOARDING_WORKFLOW = [
-  { title: "Registration", description: "Employee registers on the portal" },
-  { title: "Document Verification", description: "Documents uploaded and verified" },
-  { title: "L1 Approval", description: "First-level review and decision" },
-  { title: "Employee Number Generated", description: "Unique ID assigned automatically" },
-  { title: "L2 Approval", description: "Final management approval" },
-  { title: "ID Card Generation", description: "Support team issues ID card" },
-  { title: "Employee Active", description: "Onboarding complete" },
+  { title: "Submitter registers", description: "Complete form + upload documents" },
+  { title: "L1 verifies", description: "Approve to L2 or reverse with note" },
+  { title: "L2 decides", description: "Approve, reverse, or send back to L1" },
+  { title: "Temp ID generated", description: "Temporary Employee ID assigned" },
+  { title: "Folder created", description: "Employee Documents folder organized" },
+  { title: "Ready for Admin", description: "Visible to Admin / Support teams" },
 ] as const;
 
 export const REQUIRED_DOCUMENTS = [

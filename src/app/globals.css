@@ -6,16 +6,22 @@
   :root {
     --background: 210 40% 98%;
     --foreground: 222 47% 11%;
-    --primary: 210 55% 13%;
+    --primary: 213 68% 14%;
     --primary-foreground: 0 0% 100%;
     --accent: 43 66% 52%;
     --accent-foreground: 213 68% 14%;
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
     --border: 214 32% 91%;
-    --ring: 213 68% 14%;
+    --ring: 199 89% 48%;
     --destructive: 0 72% 41%;
-    --radius: 0.75rem;
+    --radius: 0.85rem;
+    --surface: 0 0% 100%;
+    --brand-navy: #0b1f3a;
+    --brand-navy-deep: #071526;
+    --brand-sky: #0ea5e9;
+    --brand-gold: #d4af37;
+    --brand-teal: #0f766e;
   }
 
   * {
@@ -23,7 +29,7 @@
   }
 
   body {
-    @apply bg-[#F8FAFC] text-[#0F172A] antialiased;
+    @apply bg-[#F4F7FB] text-[#0F172A] antialiased;
   }
 
   html {
@@ -44,7 +50,7 @@
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible {
-    @apply outline-none ring-2 ring-primary/20 ring-offset-1;
+    @apply outline-none ring-2 ring-sky-400/30 ring-offset-1;
   }
 }
 
@@ -54,23 +60,52 @@
   }
 
   .ui-card:hover {
-    @apply border-[#BFDBFE] shadow-[0_12px_32px_-20px_rgba(29,78,216,0.35)];
+    @apply border-sky-200 shadow-[0_16px_40px_-24px_rgba(14,165,233,0.45)];
   }
 
   .ui-soft-panel {
-    @apply rounded-2xl border border-[#E2E8F0] bg-gradient-to-br from-white to-[#F8FAFC];
+    @apply rounded-2xl border border-[#E2E8F0] bg-gradient-to-br from-white via-[#F8FAFC] to-[#EFF6FF];
+  }
+
+  .marketing-section {
+    @apply relative overflow-hidden py-16 lg:py-24;
+  }
+
+  .marketing-card {
+    @apply rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-[0_8px_30px_-18px_rgba(11,31,58,0.28)] transition-all duration-300 hover:-translate-y-1 hover:border-sky-200 hover:shadow-[0_20px_50px_-24px_rgba(14,165,233,0.4)];
+  }
+
+  .marketing-mesh {
+    background-color: #071526;
+    background-image:
+      radial-gradient(ellipse 70% 55% at 12% 18%, rgba(14, 165, 233, 0.28), transparent),
+      radial-gradient(ellipse 55% 45% at 88% 12%, rgba(212, 175, 55, 0.22), transparent),
+      radial-gradient(ellipse 50% 40% at 70% 85%, rgba(15, 118, 110, 0.2), transparent),
+      linear-gradient(145deg, #071526 0%, #0b1f3a 45%, #12325c 100%);
   }
 
   .dashboard-shell-bg {
     background-color: #eef2f7;
     background-image:
-      radial-gradient(ellipse 80% 50% at 0% -10%, rgba(29, 78, 216, 0.08), transparent),
-      radial-gradient(ellipse 60% 40% at 100% 0%, rgba(14, 165, 233, 0.06), transparent),
+      radial-gradient(ellipse 80% 50% at 0% -10%, rgba(14, 165, 233, 0.08), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 0%, rgba(212, 175, 55, 0.08), transparent),
       linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
   }
 
   .dashboard-panel {
     @apply rounded-2xl border border-[#E2E8F0]/90 bg-white/90 p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] backdrop-blur-sm sm:p-6;
+  }
+
+  .enterprise-table-wrap {
+    @apply overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)];
+  }
+
+  .enterprise-table th {
+    @apply px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#64748B];
+  }
+
+  .enterprise-table td {
+    @apply px-4 py-3.5 text-sm;
   }
 }
 
@@ -80,13 +115,31 @@
   }
 
   .animate-fade-in {
-    animation: fadeIn 0.4s ease-out forwards;
+    animation: fadeIn 0.5s ease-out forwards;
     opacity: 0;
   }
 
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
   .animate-rise {
-    animation: riseIn 0.45s ease-out forwards;
+    animation: riseIn 0.55s ease-out forwards;
     opacity: 0;
+  }
+
+  .animate-float {
+    animation: floatY 5.5s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    background-size: 200% 100%;
+    animation: shimmer 2.8s linear infinite;
   }
 
   .hover-lift {
@@ -99,19 +152,22 @@
   }
 
   .stagger-1 {
-    animation-delay: 40ms;
+    animation-delay: 60ms;
   }
   .stagger-2 {
-    animation-delay: 80ms;
-  }
-  .stagger-3 {
     animation-delay: 120ms;
   }
+  .stagger-3 {
+    animation-delay: 180ms;
+  }
   .stagger-4 {
-    animation-delay: 160ms;
+    animation-delay: 240ms;
   }
   .stagger-5 {
-    animation-delay: 200ms;
+    animation-delay: 300ms;
+  }
+  .stagger-6 {
+    animation-delay: 360ms;
   }
 }
 
@@ -127,10 +183,29 @@
 @keyframes riseIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes floatY {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
   }
 }

@@ -41,7 +41,7 @@ export function SidebarNotificationBadge({
 }: SidebarNotificationBadgeProps) {
   if (unreadCount <= 0) return null;
   return (
-    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-primary">
+    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-b from-[#FB7185] to-[#E11D48] px-1.5 text-[10px] font-bold text-white shadow-[0_4px_10px_-4px_rgba(225,29,72,0.7)] ring-2 ring-[#0E2340]">
       {unreadCount > 99 ? "99+" : unreadCount}
     </span>
   );

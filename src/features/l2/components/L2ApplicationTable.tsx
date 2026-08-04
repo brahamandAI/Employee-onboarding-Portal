@@ -14,6 +14,7 @@ import {
   l2ApproveAction,
   l2ReturnAction,
 } from "@/features/l2/actions/l2.actions";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface L2ApplicationTableProps {
   applications: ApplicationListItem[];
@@ -107,9 +108,10 @@ export function L2ApplicationTable({
 
   if (applications.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-[#CBD5E1] bg-white/80 p-12 text-center">
-        <p className="text-sm text-[#64748B]">{emptyMessage}</p>
-      </div>
+      <EmptyState
+        title={emptyMessage}
+        description="Applications forwarded from L1 will appear in this queue."
+      />
     );
   }
 

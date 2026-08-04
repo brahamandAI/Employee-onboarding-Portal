@@ -218,11 +218,12 @@ export function canAccessDocumentsFolder(params: {
   }
 
   if (role === UserRole.L1) {
+    // L1 may view documents only during the L1 approval process
     const reviewing = [
       EmployeeStatus.SUBMITTED,
       EmployeeStatus.L1_REVIEW,
     ].includes(employee.status);
-    if (!reviewing && !postApproved) {
+    if (!reviewing) {
       return {
         allowed: false,
         canDownloadZip: false,
@@ -230,7 +231,6 @@ export function canAccessDocumentsFolder(params: {
         reason: "L1 can view documents only while reviewing pending registrations",
       };
     }
-    // Folder UI mainly after L2; still allow document list during review
     return { allowed: true, canDownloadZip: false, readOnly: true };
   }
 
@@ -244,9 +244,10 @@ export function canAccessDocumentsFolder(params: {
         allowed: false,
         canDownloadZip: false,
         readOnly: true,
-        reason: "Submitters can only access their own registrations",
+        reason: "Submitters can only access their own employee folders",
       };
     }
+    // Own folder only — available once organized after L2 approval
     return { allowed: true, canDownloadZip: false, readOnly: true };
   }
 
@@ -255,6 +256,118 @@ export function canAccessDocumentsFolder(params: {
     canDownloadZip: false,
     readOnly: true,
     reason: "Forbidden",
+  };
+}
+
+export interface MasterFolderListItem {
+  employeeId: string;
+  folderName: string;
+  folderPath: string;
+  documentCount: number;
+  temporaryEmployeeId: string;
+  employeeName: string;
+  organizedAt: string;
+  applicationRef?: string;
+}
+
+/**
+ * List organized employee folders under the main "Employee Documents" root,
+ * filtered by the caller's role permissions.
+ */
+export async function listEmployeeDocumentFolders(params: {
+  role: StaffRole;
+  userId: string;
+}): Promise<{
+  masterFolder: string;
+  folders: MasterFolderListItem[];
+}> {
+  await connectDB();
+
+  const query: Record<string, unknown> = {
+    "documentsFolder.folderPath": { $exists: true, $ne: null },
+  };
+
+  if (params.role === UserRole.SUBMITTER) {
+    query.submittedBy = params.userId;
+  } else if (params.role === UserRole.SUPPORT) {
+    query.$or = [
+      { temporaryEmployeeId: { $exists: true, $ne: null } },
+      { forwardedToAdminAt: { $exists: true } },
+      { forwardedToSupportAt: { $exists: true } },
+      { "l2Decision.action": { $in: ["APPROVE", "FORWARD"] } },
+      {
+        status: {
+          $in: [
+            EmployeeStatus.APPROVED,
+            EmployeeStatus.ID_GENERATED,
+            EmployeeStatus.ID_CARD_ISSUED,
+          ],
+        },
+      },
+    ];
+  } else if (params.role === UserRole.L2) {
+    // L2 sees folders after their approval (organized folders)
+    query.$or = [
+      { temporaryEmployeeId: { $exists: true, $ne: null } },
+      { "l2Decision.action": { $in: ["APPROVE", "FORWARD"] } },
+      {
+        status: {
+          $in: [
+            EmployeeStatus.APPROVED,
+            EmployeeStatus.ID_GENERATED,
+            EmployeeStatus.ID_CARD_ISSUED,
+          ],
+        },
+      },
+    ];
+  } else if (params.role === UserRole.L1) {
+    // L1 does not browse the master folder — only during detail review
+    return { masterFolder: EMPLOYEE_DOCUMENTS_MASTER_FOLDER, folders: [] };
+  }
+  // Admin: all organized folders
+
+  const employees = await Employee.find(query)
+    .select("applicationRef documentsFolder submittedBy status temporaryEmployeeId forwardedToAdminAt forwardedToSupportAt l2Decision")
+    .sort({ "documentsFolder.organizedAt": -1 })
+    .lean();
+
+  const folders: MasterFolderListItem[] = [];
+
+  for (const emp of employees) {
+    const df = emp.documentsFolder;
+    if (!df?.folderName || !df?.folderPath) continue;
+
+    const access = canAccessDocumentsFolder({
+      role: params.role,
+      userId: params.userId,
+      employee: {
+        status: emp.status,
+        submittedBy: emp.submittedBy?.toString(),
+        temporaryEmployeeId: emp.temporaryEmployeeId,
+        forwardedToAdminAt: emp.forwardedToAdminAt,
+        forwardedToSupportAt: emp.forwardedToSupportAt,
+        l2Decision: emp.l2Decision ? { action: emp.l2Decision.action } : undefined,
+        documentsFolder: df,
+      },
+    });
+
+    if (!access.allowed) continue;
+
+    folders.push({
+      employeeId: String(emp._id),
+      folderName: df.folderName,
+      folderPath: df.folderPath,
+      documentCount: df.documentCount ?? 0,
+      temporaryEmployeeId: df.temporaryEmployeeId,
+      employeeName: df.employeeName,
+      organizedAt: new Date(df.organizedAt).toISOString(),
+      applicationRef: emp.applicationRef,
+    });
+  }
+
+  return {
+    masterFolder: EMPLOYEE_DOCUMENTS_MASTER_FOLDER,
+    folders,
   };
 }
 

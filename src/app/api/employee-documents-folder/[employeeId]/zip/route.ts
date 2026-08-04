@@ -62,6 +62,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       const res = await fetch(doc.url);
       if (!res.ok) continue;
       const buf = Buffer.from(await res.arrayBuffer());
+      // Preserve employee folder structure: TEMP ID - Name / Label / file
       const entryPath = doc.folderRelativePath || `${doc.label}/${doc.fileName}`;
       folder.file(entryPath, buf);
     } catch {
@@ -70,7 +71,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   }
 
   const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
-  const filename = `${(data.folder?.folderName || root).replace(/[\\/:*?"<>|]/g, "-")}.zip`;
+  const safeName = (data.folder?.folderName || root).replace(/[\\/:*?"<>|]/g, "-").trim();
+  const filename = `${safeName}.zip`;
 
   return new NextResponse(new Uint8Array(zipBuffer), {
     status: 200,

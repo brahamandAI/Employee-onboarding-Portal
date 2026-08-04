@@ -8,16 +8,16 @@ import { AnimatedCounter } from "@/components/marketing/about/AnimatedCounter";
 import { ApprovalStagesTimeline } from "@/components/marketing/about/ApprovalStagesTimeline";
 
 const STAT_ACCENTS = [
-  "from-blue-600 to-blue-800",
-  "from-emerald-600 to-emerald-800",
-  "from-violet-600 to-violet-800",
+  "from-sky-600 to-sky-800",
+  "from-teal-600 to-teal-800",
   "from-amber-600 to-amber-800",
-  "from-primary to-[#0a1f38]",
+  "from-primary to-[#12325C]",
+  "from-emerald-600 to-emerald-800",
 ];
 
 export function AboutPortalInfo() {
   const numericStats = COMPANY_STATS.filter(
-    (s) => s.id === "sections" || s.id === "documents"
+    (s) => s.id === "sections" || s.id === "roles"
   );
   const cloudStat = COMPANY_STATS.find((s) => s.id === "portal");
 
@@ -26,7 +26,7 @@ export function AboutPortalInfo() {
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {numericStats.map((stat, i) => (
           <MotionReveal key={stat.id} delay={i * 60}>
-            <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-soft transition hover:border-sky-200">
               <div className={cn("h-1.5 bg-gradient-to-r", STAT_ACCENTS[i])} />
               <div className="p-6 text-center">
                 <AnimatedCounter
@@ -41,7 +41,7 @@ export function AboutPortalInfo() {
         ))}
 
         <MotionReveal delay={120}>
-          <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm sm:col-span-2 lg:col-span-2">
+          <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-soft sm:col-span-2 lg:col-span-2">
             <div className={cn("h-1.5 bg-gradient-to-r", STAT_ACCENTS[2])} />
             <div className="p-6">
               <p className="text-sm font-semibold uppercase tracking-wider text-[#64748B]">
@@ -64,12 +64,12 @@ export function AboutPortalInfo() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <MotionReveal delay={150}>
-          <div className="h-full overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
+          <div className="h-full overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-soft">
             <div className={cn("h-1.5 bg-gradient-to-r", STAT_ACCENTS[3])} />
             <div className="p-6">
               <p className="font-heading text-lg font-bold text-primary">Approval Stages</p>
               <p className="mt-1 text-sm text-[#64748B]">
-                Transparent status tracking from application draft to ID card completion.
+                From draft submission through L2 approval, Temporary Employee ID, and document folders.
               </p>
               <div className="mt-6">
                 <ApprovalStagesTimeline />

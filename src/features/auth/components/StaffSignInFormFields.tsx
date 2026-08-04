@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { STAFF_ROLE_OPTIONS } from "@/features/auth/constants";
 import { UserRole } from "@/types/enums";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,9 @@ function emailPlaceholder(role: string): string {
   return "you@rakshaksecuritas.com";
 }
 
+const fieldControlClass =
+  "h-12 rounded-xl border-[#D8E0EA] bg-[#F8FAFC] text-[0.9375rem] text-[#0F172A] shadow-none placeholder:text-[#94A3B8] hover:border-[#C5D0DE] focus-visible:border-sky-400 focus-visible:bg-white focus-visible:ring-sky-400/30";
+
 export function StaffSignInFormFields({
   idPrefix = "",
   role,
@@ -42,33 +46,37 @@ export function StaffSignInFormFields({
   const passwordId = `${idPrefix}staff-password`;
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-5", className)}>
       <div className="space-y-2">
-        <Label htmlFor={roleId} required>
+        <Label
+          htmlFor={roleId}
+          required
+          className="text-[13px] font-semibold tracking-wide text-[#1E293B]"
+        >
           Role
         </Label>
-        <select
+        <Select
           id={roleId}
           name="role"
           value={role}
           onChange={(e) => onRoleChange(e.target.value)}
           required
           disabled={isLoading}
-          className="flex h-10 w-full rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <option value="" disabled>
-            Select your role
-          </option>
-          {STAFF_ROLE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+          placeholder="Select your role"
+          className={fieldControlClass}
+          options={STAFF_ROLE_OPTIONS.map((opt) => ({
+            value: opt.value,
+            label: opt.label,
+          }))}
+        />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={emailId} required>
+        <Label
+          htmlFor={emailId}
+          required
+          className="text-[13px] font-semibold tracking-wide text-[#1E293B]"
+        >
           Email
         </Label>
         <Input
@@ -80,18 +88,23 @@ export function StaffSignInFormFields({
           autoComplete="username"
           required
           disabled={isLoading}
+          className={fieldControlClass}
         />
       </div>
 
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor={passwordId} required>
+        <div className="flex items-center justify-between gap-3">
+          <Label
+            htmlFor={passwordId}
+            required
+            className="text-[13px] font-semibold tracking-wide text-[#1E293B]"
+          >
             Password
           </Label>
           {showForgotPassword && (
             <Link
               href="/staff/forgot-password"
-              className="text-xs text-[#1D4ED8] hover:underline"
+              className="text-xs font-semibold text-[#0284C7] transition hover:text-[#0369A1] hover:underline"
             >
               Forgot password?
             </Link>
@@ -106,16 +119,20 @@ export function StaffSignInFormFields({
             autoComplete="current-password"
             required
             disabled={isLoading}
-            className="pr-10"
+            className={cn(fieldControlClass, "pr-11")}
           />
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[#64748B] hover:text-primary"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-[#64748B] transition hover:bg-[#E2E8F0]/70 hover:text-[#0B1F3A]"
             aria-label={showPassword ? "Hide password" : "Show password"}
             tabIndex={-1}
           >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showPassword ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
           </button>
         </div>
       </div>
