@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle, Eye, RotateCcw } from "lucide-react";
+import { ArrowLeftCircle, CheckCircle, Eye } from "lucide-react";
 import { ApplicationListItem } from "@/lib/services/l1.service";
 import { StatusBadge } from "@/features/l1/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { EmployeeStatus } from "@/types/enums";
 import {
   l2ApproveAction,
-  l2ReturnAction,
+  l2ReturnToL1Action,
 } from "@/features/l2/actions/l2.actions";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -78,7 +78,7 @@ export function L2ApplicationTable({
     }
   }
 
-  async function handleReverse(employeeId: string) {
+  async function handleReturnToL1(employeeId: string) {
     if (busyId || doneIds.has(employeeId)) return;
     setError(null);
     setBusyId(employeeId);
@@ -88,20 +88,20 @@ export function L2ApplicationTable({
     fd.set("comment", comment);
 
     try {
-      const result = await l2ReturnAction(fd);
+      const result = await l2ReturnToL1Action(fd);
       if (!result.success) {
-        setError(result.error ?? "Reverse failed");
+        setError(result.error ?? "Send back failed");
         setBusyId(null);
         return;
       }
       setDoneIds((prev) => new Set(prev).add(employeeId));
       setReversingId(null);
       setComment("");
-      setSuccess("Reversed — sent back to submitter.");
+      setSuccess("Sent back to L1 for re-review.");
       setBusyId(null);
       router.refresh();
     } catch {
-      setError("Reverse failed. Please try again.");
+      setError("Send back failed. Please try again.");
       setBusyId(null);
     }
   }
@@ -204,8 +204,8 @@ export function L2ApplicationTable({
                                 setError(null);
                               }}
                             >
-                              <RotateCcw className="h-4 w-4" />
-                              Reverse
+                              <ArrowLeftCircle className="h-4 w-4" />
+                              Send Back to L1
                             </Button>
                           </>
                         )}
@@ -221,7 +221,7 @@ export function L2ApplicationTable({
 
       {reversingId && !doneIds.has(reversingId) && (
         <div className="rounded-xl border border-[#E2E8F0] bg-white p-4 shadow-sm">
-          <Label htmlFor="reverse-comment">Reverse note</Label>
+          <Label htmlFor="reverse-comment">Note for L1 Approver</Label>
           <Textarea
             id="reverse-comment"
             rows={3}
@@ -236,9 +236,9 @@ export function L2ApplicationTable({
               size="sm"
               isLoading={busyId === reversingId}
               disabled={comment.trim().length < 10 || !!busyId}
-              onClick={() => void handleReverse(reversingId)}
+              onClick={() => void handleReturnToL1(reversingId)}
             >
-              Confirm Reverse
+              Confirm Send Back to L1
             </Button>
             <Button
               variant="ghost"

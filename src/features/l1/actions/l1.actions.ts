@@ -31,11 +31,15 @@ function revalidateAfterL1Action(employeeId: string) {
   revalidatePath("/dashboard/l1/applications/pending");
   revalidatePath("/dashboard/l1/applications/approved");
   revalidatePath("/dashboard/l1/applications/rejected");
+  revalidatePath("/dashboard/l1/applications/reversed-from-l2");
   revalidatePath("/dashboard/l1/applications/all");
   revalidatePath("/dashboard/l2");
   revalidatePath("/dashboard/l2/applications/pending");
+  revalidatePath("/dashboard/l2/applications/rejected");
   revalidatePath("/dashboard/submitter");
   revalidatePath("/dashboard/submitter/registrations");
+  revalidatePath("/dashboard/submitter/registrations/reversed");
+  revalidatePath(`/dashboard/submitter/registrations/${employeeId}`);
 }
 
 export async function l1ApproveAction(

@@ -1,6 +1,6 @@
 import { connectDB } from "@/lib/db/connect";
 import { Employee } from "@/lib/db/models/Employee";
-import { StaffRole, UserRole } from "@/types/enums";
+import { EmployeeStatus, StaffRole, UserRole } from "@/types/enums";
 import { getL1Stats } from "@/lib/services/l1.service";
 import { getL2Stats } from "@/lib/services/l2.service";
 import { getSupportStats } from "@/lib/services/support.service";
@@ -24,32 +24,53 @@ export interface DashboardLiveSnapshot {
   role: StaffRole;
 }
 
-async function getLatestQueueTimestamp(
-  role: StaffRole,
-  userId: string
-): Promise<number> {
-  await connectDB();
-
-  let filter: Record<string, unknown>;
-
-  if (role === UserRole.L1) {
-    filter = L1_PENDING_FILTER;
-  } else if (role === UserRole.L2) {
-    filter = L2_PENDING_FILTER;
-  } else if (role === UserRole.SUBMITTER) {
-    filter = { submittedBy: new mongoose.Types.ObjectId(userId) };
-  } else if (role === UserRole.ADMIN) {
-    filter = ADMIN_REGISTRATIONS_FILTER;
-  } else {
-    filter = SUPPORT_PENDING_FILTER;
-  }
-
+async function latestUpdatedAt(filter: Record<string, unknown>): Promise<number> {
   const latest = await Employee.findOne(filter)
     .sort({ updatedAt: -1 })
     .select("updatedAt")
     .lean();
 
   return latest?.updatedAt ? new Date(latest.updatedAt).getTime() : 0;
+}
+
+/**
+ * Watermark used to detect changes between polls.
+ *
+ * Submitters only watch their own registrations. Staff watch every submitted
+ * application, because an approve or reverse performed by another role moves an
+ * application out of their queue filter — a queue-scoped watermark would then
+ * miss the change and leave their lists stale. Drafts are excluded so submitter
+ * autosaves do not trigger constant staff refreshes.
+ */
+async function getLatestQueueTimestamp(
+  role: StaffRole,
+  userId: string
+): Promise<number> {
+  await connectDB();
+
+  if (role === UserRole.SUBMITTER) {
+    return latestUpdatedAt({
+      submittedBy: new mongoose.Types.ObjectId(userId),
+    });
+  }
+
+  let queueFilter: Record<string, unknown>;
+  if (role === UserRole.L1) {
+    queueFilter = L1_PENDING_FILTER;
+  } else if (role === UserRole.L2) {
+    queueFilter = L2_PENDING_FILTER;
+  } else if (role === UserRole.ADMIN) {
+    queueFilter = ADMIN_REGISTRATIONS_FILTER;
+  } else {
+    queueFilter = SUPPORT_PENDING_FILTER;
+  }
+
+  const [reviewableLatest, queueLatest] = await Promise.all([
+    latestUpdatedAt({ status: { $ne: EmployeeStatus.DRAFT } }),
+    latestUpdatedAt(queueFilter),
+  ]);
+
+  return Math.max(reviewableLatest, queueLatest);
 }
 
 export async function getDashboardLiveSnapshot(
@@ -67,7 +88,7 @@ export async function getDashboardLiveSnapshot(
       role,
       pendingCount: stats.pendingL1 + stats.pendingL2,
       unreadCount,
-      fingerprint: `submitter:${stats.total}:${stats.pendingL1}:${stats.pendingL2}:${stats.approved}:${unreadCount}:${latestActivity}`,
+      fingerprint: `submitter:${stats.total}:${stats.pendingL1}:${stats.pendingL2}:${stats.approved}:${stats.reversed}:${unreadCount}:${latestActivity}`,
     };
   }
 
@@ -77,7 +98,7 @@ export async function getDashboardLiveSnapshot(
       role,
       pendingCount: stats.pending,
       unreadCount,
-      fingerprint: `l1:${stats.pending}:${stats.approved}:${stats.rejected}:${stats.returnedToday}:${unreadCount}:${latestActivity}`,
+      fingerprint: `l1:${stats.pending}:${stats.approved}:${stats.rejected}:${stats.returnedToday}:${stats.reversedFromL2}:${unreadCount}:${latestActivity}`,
     };
   }
 

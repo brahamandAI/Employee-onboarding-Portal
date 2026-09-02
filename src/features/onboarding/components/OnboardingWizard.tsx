@@ -330,15 +330,15 @@ export function OnboardingWizard({
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-6rem)] flex-col">
+    <div className="flex flex-col">
       <FormStepNav
         currentStep={currentStep}
         completedSteps={completedSteps}
         onStepClick={handleStepClick}
       />
 
-      <div className="flex flex-1 flex-col">
-        <div className="flex-1 py-4 sm:py-6">
+      <div className="flex flex-col">
+        <div className="py-4 sm:py-6">
           {employee.correctionNotes && (
             <div className="mb-6 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
               <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />

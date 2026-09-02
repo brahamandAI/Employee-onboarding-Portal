@@ -40,6 +40,10 @@ function revalidateL2(employeeId?: string) {
   revalidatePath("/dashboard/l2/applications/all");
   revalidatePath("/dashboard/l1");
   revalidatePath("/dashboard/l1/applications/pending");
+  revalidatePath("/dashboard/l1/applications/approved");
+  revalidatePath("/dashboard/l1/applications/rejected");
+  revalidatePath("/dashboard/l1/applications/reversed-from-l2");
+  revalidatePath("/dashboard/l1/applications/all");
   revalidatePath("/dashboard/admin");
   revalidatePath("/dashboard/admin/registrations");
   revalidatePath("/dashboard/support");
@@ -47,6 +51,9 @@ function revalidateL2(employeeId?: string) {
   revalidatePath("/dashboard/submitter");
   revalidatePath("/dashboard/submitter/registrations");
   revalidatePath("/dashboard/submitter/registrations/reversed");
+  if (employeeId) {
+    revalidatePath(`/dashboard/submitter/registrations/${employeeId}`);
+  }
 }
 
 export async function l2ApproveAction(

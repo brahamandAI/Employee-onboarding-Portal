@@ -4,8 +4,12 @@ import { UserRole } from "@/types/enums";
 import { getEmployeeDetailForReview } from "@/lib/services/approval.service";
 import { EmployeeDetailView } from "@/features/l1/components/EmployeeDetailView";
 import { DashboardBackLink } from "@/components/dashboard/DashboardBackLink";
+import { mapReviewDocuments } from "@/features/documents/utils/map-review-documents";
 
 export const metadata = { title: "Employee Details | L1" };
+
+/** Always read the latest decision state so the status stays live. */
+export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -65,6 +69,20 @@ export default async function L1EmployeeDetailPage({ params }: PageProps) {
                 })(),
               }
             : undefined,
+          l2Decision: employee.l2Decision
+            ? {
+                action: employee.l2Decision.action,
+                comment: employee.l2Decision.comment,
+                decidedAt: employee.l2Decision.decidedAt,
+                decidedBy: (() => {
+                  const d = employee.l2Decision.decidedBy as
+                    | { name?: string; email?: string }
+                    | null
+                    | undefined;
+                  return d?.name ? { name: d.name, email: d.email } : null;
+                })(),
+              }
+            : undefined,
           correctionNotes: employee.correctionNotes,
           rejectionReason: employee.rejectionReason,
           pendingFieldChanges: (
@@ -78,11 +96,7 @@ export default async function L1EmployeeDetailPage({ params }: PageProps) {
             }
           ).pendingFieldChanges,
         }}
-        documents={documents.map((d) => ({
-          documentType: d.documentType,
-          fileName: d.fileName,
-          url: d.url,
-        }))}
+        documents={mapReviewDocuments(documents)}
         history={history.map((h) => ({
           action: h.action,
           fromStatus: h.fromStatus,

@@ -1,0 +1,81 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth/config";
+import { UserRole } from "@/types/enums";
+import { connectDB } from "@/lib/db/connect";
+import { EmployeeDocument } from "@/lib/db/models/EmployeeDocument";
+import { Employee } from "@/lib/db/models/Employee";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/** Roles that review uploaded documents as part of the approval workflow. */
+const REVIEWER_ROLES: string[] = [
+  UserRole.L1,
+  UserRole.L2,
+  UserRole.ADMIN,
+  UserRole.SUPPORT,
+];
+
+interface RouteParams {
+  params: Promise<{ docId: string }>;
+}
+
+/**
+ * Streams an uploaded employee document through the app so reviewers can preview
+ * it inline or download it without depending on cross-origin Cloudinary access.
+ *
+ * `?mode=download` forces a file download; anything else renders inline.
+ */
+export async function GET(request: NextRequest, { params }: RouteParams) {
+  const session = await auth();
+  const role = session?.user?.role;
+
+  if (!session?.user?.id || !role) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { docId } = await params;
+  await connectDB();
+
+  const doc = await EmployeeDocument.findOne({ _id: docId, isActive: true });
+  if (!doc) {
+    return NextResponse.json({ error: "Document not found" }, { status: 404 });
+  }
+
+  if (!REVIEWER_ROLES.includes(role)) {
+    // Submitters may only open documents belonging to their own registrations.
+    if (role !== UserRole.SUBMITTER) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const employee = await Employee.findById(doc.employeeId)
+      .select("submittedBy")
+      .lean();
+
+    if (!employee || employee.submittedBy?.toString() !== session.user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
+  const upstream = await fetch(doc.url, { cache: "no-store" });
+  if (!upstream.ok) {
+    return NextResponse.json(
+      { error: "Unable to fetch document" },
+      { status: 502 }
+    );
+  }
+
+  const buffer = Buffer.from(await upstream.arrayBuffer());
+  const download = request.nextUrl.searchParams.get("mode") === "download";
+  const safeName = doc.fileName.replace(/["\\\r\n]/g, "");
+
+  return new NextResponse(buffer, {
+    status: 200,
+    headers: {
+      "Content-Type": doc.mimeType || "application/octet-stream",
+      "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${safeName}"`,
+      "Content-Length": String(buffer.length),
+      "Cache-Control": "private, no-store",
+    },
+  });
+}

@@ -25,7 +25,8 @@ export function OfficeUseBanner() {
         Police verification to be submitted within 15 days from date of joining.
       </p>
       <p className="mt-2 text-xs leading-relaxed text-[#64748B]">
-        Note: This application is software-based and computer-generated. Particulars are as submitted digitally through the Employee Onboarding Portal.
+        All particulars are recorded electronically through the official Employee Onboarding
+        Portal of Rakshak Securitas Pvt Ltd.
       </p>
     </FormSection>
   );

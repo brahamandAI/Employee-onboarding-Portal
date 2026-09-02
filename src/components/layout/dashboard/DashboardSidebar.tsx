@@ -18,6 +18,7 @@ import {
   UserPlus,
   Headphones,
   Crown,
+  Undo2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StaffRole, UserRole } from "@/types/enums";
@@ -85,6 +86,11 @@ const NAV_ITEMS: Record<StaffRole, NavItem[] | NavSection[]> = {
   [UserRole.L1]: [
     { label: "Dashboard", href: "/dashboard/l1", icon: LayoutDashboard },
     { label: "Pending", href: "/dashboard/l1/applications/pending", icon: Clock },
+    {
+      label: "Reversed from L2",
+      href: "/dashboard/l1/applications/reversed-from-l2",
+      icon: Undo2,
+    },
     { label: "Approved", href: "/dashboard/l1/applications/approved", icon: CheckCircle2 },
     { label: "All Registrations", href: "/dashboard/l1/applications/all", icon: FileOutput },
     { label: "Reversed", href: "/dashboard/l1/applications/rejected", icon: XCircle },

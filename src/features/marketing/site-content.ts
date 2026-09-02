@@ -93,7 +93,7 @@ export const PORTAL_ROLES = [
   {
     role: "L2 Approver",
     description:
-      "Final approval, Temporary Employee ID generation, send back to L1, or reverse to submitter.",
+      "Final approval, Temporary Employee ID generation, or send back to L1 for re-review.",
     href: "/staff/login",
     cta: "L2 Login",
     icon: "BadgeCheck",

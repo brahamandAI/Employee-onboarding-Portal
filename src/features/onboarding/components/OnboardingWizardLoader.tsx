@@ -14,7 +14,7 @@ interface OnboardingWizardLoaderProps {
 
 function WizardSkeleton() {
   return (
-    <div className="flex min-h-[calc(100vh-6rem)] flex-col" aria-busy="true" aria-label="Loading form">
+    <div className="flex flex-col" aria-busy="true" aria-label="Loading form">
       <div className="sticky top-0 z-10 -mx-4 border-b border-[#E2E8F0] bg-white/95 px-4 py-3 sm:-mx-6 sm:px-6">
         <div className="flex gap-2 overflow-hidden">
           {Array.from({ length: ONBOARDING_TOTAL_STEPS }).map((_, i) => (

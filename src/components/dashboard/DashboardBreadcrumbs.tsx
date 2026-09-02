@@ -18,6 +18,7 @@ const LABEL_MAP: Record<string, string> = {
   approved: "Approved",
   rejected: "Reversed",
   reversed: "Reversed",
+  "reversed-from-l2": "Reversed from L2",
   all: "All",
   documents: "Documents",
   notifications: "Notifications",

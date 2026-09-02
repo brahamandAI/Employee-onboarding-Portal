@@ -8,7 +8,9 @@ export type ApprovalAction =
   | "L2_APPROVE"
   | "L2_REJECT"
   | "L2_RETURN"
+  | "L2_RETURN_TO_L1"
   | "L2_FORWARD"
+  | "L2_FORWARD_ADMIN"
   | "RESUBMIT"
   | "GENERATE_ID";
 

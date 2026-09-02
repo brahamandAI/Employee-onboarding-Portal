@@ -7,7 +7,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 interface ApplicationTableProps {
   applications: ApplicationListItem[];
   emptyMessage?: string;
+  emptyDescription?: string;
   showEmployeeId?: boolean;
+  /** Replaces the Submitted By column with the note L2 left when reversing */
+  showL2ReverseNote?: boolean;
   viewPathPrefix?: string;
 }
 
@@ -23,16 +26,14 @@ function formatDate(iso?: string) {
 export function ApplicationTable({
   applications,
   emptyMessage = "No applications found.",
+  emptyDescription = "New registrations will appear here when they enter your queue.",
   showEmployeeId = false,
+  showL2ReverseNote = false,
+
   viewPathPrefix = "/dashboard/l1/applications",
 }: ApplicationTableProps) {
   if (applications.length === 0) {
-    return (
-      <EmptyState
-        title={emptyMessage}
-        description="New registrations will appear here when they enter your queue."
-      />
-    );
+    return <EmptyState title={emptyMessage} description={emptyDescription} />;
   }
 
   return (
@@ -54,7 +55,7 @@ export function ApplicationTable({
                 Status
               </th>
               <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-                Submitted By
+                {showL2ReverseNote ? "L2 Reverse Note" : "Submitted By"}
               </th>
               {showEmployeeId && (
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
@@ -85,9 +86,31 @@ export function ApplicationTable({
                 <td className="px-4 py-3.5">
                   <StatusBadge status={app.status} />
                 </td>
-                <td className="px-4 py-3.5 text-[#64748B]">
-                  {app.submittedByName ?? "—"}
-                </td>
+                {showL2ReverseNote ? (
+                  <td className="max-w-[22rem] px-4 py-3.5 text-[#64748B]">
+                    {app.l2ReverseNote ? (
+                      <>
+                        <span className="block whitespace-pre-line text-[#334155]">
+                          {app.l2ReverseNote}
+                        </span>
+                        {(app.l2ReversedByName || app.l2ReversedAt) && (
+                          <span className="mt-1 block text-xs text-[#94A3B8]">
+                            {app.l2ReversedByName ?? "L2"}
+                            {app.l2ReversedAt
+                              ? ` · ${formatDate(app.l2ReversedAt)}`
+                              : ""}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                ) : (
+                  <td className="px-4 py-3.5 text-[#64748B]">
+                    {app.submittedByName ?? "—"}
+                  </td>
+                )}
                 {showEmployeeId && (
                   <td className="px-4 py-3.5 font-mono text-sm">
                     {app.employeeId ?? "—"}
@@ -113,3 +136,5 @@ export function ApplicationTable({
     </div>
   );
 }
+
+

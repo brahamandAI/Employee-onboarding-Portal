@@ -2,6 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,7 +13,8 @@ import {
 import {
   DECLARATION_TEXT,
   APPLICANT_POLICE_VERIFICATION_DECLARATION,
-  COMPUTER_GENERATED_NOTE,
+  DIGITAL_SUBMISSION_NOTICE,
+  DIGITAL_SUBMISSION_NOTICE_TITLE,
 } from "@/features/onboarding/constants";
 import { useAutoSave } from "@/features/onboarding/components/AutoSaveIndicator";
 import { FormSection } from "@/features/onboarding/components/FormSection";
@@ -59,13 +61,16 @@ export function DeclarationStep({
   return (
     <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <FormSection sectionNumber={7} title="Declaration" variant="highlight">
-        <div className="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-sky-800">
-            Computer-generated note
-          </p>
-          <p className="mt-1 text-sm leading-relaxed text-sky-900">
-            {COMPUTER_GENERATED_NOTE}
-          </p>
+        <div className="mb-5 flex gap-3 rounded-xl border border-sky-200 bg-sky-50/70 p-4">
+          <Info className="mt-0.5 h-5 w-5 shrink-0 text-sky-700" aria-hidden />
+          <div>
+            <p className="text-sm font-semibold text-sky-900">
+              {DIGITAL_SUBMISSION_NOTICE_TITLE}
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-sky-900/90">
+              {DIGITAL_SUBMISSION_NOTICE}
+            </p>
+          </div>
         </div>
 
         <p className="mb-4 text-sm leading-relaxed text-[#334155]">{DECLARATION_TEXT}</p>

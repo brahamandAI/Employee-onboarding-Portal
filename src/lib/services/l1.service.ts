@@ -16,7 +16,20 @@ export interface ApplicationListItem {
   l1ApprovedAt?: string;
   submittedByName?: string;
   l1ApprovedByName?: string;
+  /** Note L2 left when sending the application back to L1 */
+  l2ReverseNote?: string;
+  l2ReversedAt?: string;
+  l2ReversedByName?: string;
 }
+
+/**
+ * Applications L2 sent back to L1 for re-review. The L2 trail is kept until L1
+ * approves again, so these stay listed while they await a fresh L1 decision.
+ */
+export const L1_REVERSED_FROM_L2_FILTER = {
+  "l2Decision.action": "RETURN_TO_L1",
+  status: { $in: [EmployeeStatus.L1_REVIEW, EmployeeStatus.SUBMITTED] },
+};
 
 function mapEmployee(emp: Record<string, unknown>): ApplicationListItem {
   const personal = emp.personalDetails as { fullName?: string; postAppliedFor?: string } | undefined;
@@ -24,6 +37,15 @@ function mapEmployee(emp: Record<string, unknown>): ApplicationListItem {
   const l1Decision = emp.l1Decision as
     | { decidedBy?: { name?: string } | null }
     | undefined;
+  const l2Decision = emp.l2Decision as
+    | {
+        action?: string;
+        comment?: string;
+        decidedAt?: Date;
+        decidedBy?: { name?: string } | null;
+      }
+    | undefined;
+  const isL2Reversal = l2Decision?.action === "RETURN_TO_L1";
   return {
     _id: String(emp._id),
     applicationRef: String(emp.applicationRef),
@@ -44,13 +66,21 @@ function mapEmployee(emp: Record<string, unknown>): ApplicationListItem {
         ? submittedBy.name
         : undefined,
     l1ApprovedByName: l1Decision?.decidedBy?.name,
+    l2ReverseNote: isL2Reversal
+      ? (l2Decision?.comment ?? (emp.correctionNotes as string | undefined))
+      : undefined,
+    l2ReversedAt:
+      isL2Reversal && l2Decision?.decidedAt
+        ? new Date(l2Decision.decidedAt).toISOString()
+        : undefined,
+    l2ReversedByName: isL2Reversal ? l2Decision?.decidedBy?.name : undefined,
   };
 }
 
 export async function getL1Stats(l1UserId: string) {
   await connectDB();
 
-  const [pending, approved, rejected, returnedToday] = await Promise.all([
+  const [pending, approved, rejected, returnedToday, reversedFromL2] = await Promise.all([
     Employee.countDocuments(L1_PENDING_FILTER),
     Employee.countDocuments({
       "l1Decision.action": "APPROVE",
@@ -74,9 +104,25 @@ export async function getL1Stats(l1UserId: string) {
         $gte: new Date(new Date().setHours(0, 0, 0, 0)),
       },
     }),
+    Employee.countDocuments(L1_REVERSED_FROM_L2_FILTER),
   ]);
 
-  return { pending, approved, rejected, returnedToday };
+  return { pending, approved, rejected, returnedToday, reversedFromL2 };
+}
+
+/** Applications reversed by L2 and waiting for a fresh L1 review. */
+export async function getL1ReversedFromL2Applications(): Promise<
+  ApplicationListItem[]
+> {
+  await connectDB();
+  const items = await Employee.find(L1_REVERSED_FROM_L2_FILTER)
+    .populate("submittedBy", "name")
+    .populate("l2Decision.decidedBy", "name")
+    .sort({ "l2Decision.decidedAt": -1, updatedAt: -1 })
+    .limit(50)
+    .lean();
+
+  return items.map(mapEmployee);
 }
 
 export async function getL1PendingApplications(): Promise<ApplicationListItem[]> {

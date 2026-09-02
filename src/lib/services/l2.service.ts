@@ -36,6 +36,21 @@ function mapEmployee(emp: Record<string, unknown>): ApplicationListItem {
   };
 }
 
+/**
+ * Everything this L2 approver sent back or rejected.
+ * "RETURN_TO_L1" has no reversed status of its own (the application goes back
+ * to L1_REVIEW), so it is matched on the decision trail instead.
+ */
+function l2ReversedFilter(l2UserId: string) {
+  return {
+    $or: [
+      { status: EmployeeStatus.L2_RETURNED, "l2Decision.decidedBy": l2UserId },
+      { status: EmployeeStatus.REJECTED, "l2Decision.decidedBy": l2UserId },
+      { "l2Decision.action": "RETURN_TO_L1", "l2Decision.decidedBy": l2UserId },
+    ],
+  };
+}
+
 export async function getL2Stats(l2UserId: string) {
   await connectDB();
 
@@ -49,12 +64,7 @@ export async function getL2Stats(l2UserId: string) {
       "l2Decision.action": { $in: ["APPROVE", "FORWARD"] },
       "l2Decision.decidedBy": l2UserId,
     }),
-    Employee.countDocuments({
-      $or: [
-        { status: EmployeeStatus.L2_RETURNED, "l2Decision.decidedBy": l2UserId },
-        { status: EmployeeStatus.REJECTED, "l2Decision.decidedBy": l2UserId },
-      ],
-    }),
+    Employee.countDocuments(l2ReversedFilter(l2UserId)),
     Employee.countDocuments({
       forwardedToAdminAt: { $exists: true },
       "l2Decision.decidedBy": l2UserId,
@@ -102,12 +112,7 @@ export async function getL2RejectedApplications(
   l2UserId: string
 ): Promise<ApplicationListItem[]> {
   await connectDB();
-  const items = await Employee.find({
-    $or: [
-      { status: EmployeeStatus.L2_RETURNED, "l2Decision.decidedBy": l2UserId },
-      { status: EmployeeStatus.REJECTED, "l2Decision.decidedBy": l2UserId },
-    ],
-  })
+  const items = await Employee.find(l2ReversedFilter(l2UserId))
     .populate("submittedBy", "name")
     .populate("l1Decision.decidedBy", "name")
     .sort({ updatedAt: -1 })

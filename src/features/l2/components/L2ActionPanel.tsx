@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle, Undo2, ArrowLeftCircle } from "lucide-react";
+import { CheckCircle, ArrowLeftCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,6 @@ import { EmployeeStatus } from "@/types/enums";
 import { isPendingL2Review } from "@/lib/services/approval-queue";
 import {
   l2ApproveAction,
-  l2ReturnAction,
   l2ReturnToL1Action,
 } from "@/features/l2/actions/l2.actions";
 
@@ -21,13 +20,12 @@ interface L2ActionPanelProps {
   status: EmployeeStatus;
   employeeIdCode?: string;
   l1DecisionAction?: string;
-  l2DecisionAction?: "APPROVE" | "REJECT" | "RETURN" | "FORWARD";
+  l2DecisionAction?: "APPROVE" | "REJECT" | "RETURN" | "RETURN_TO_L1" | "FORWARD";
   forwardedToSupportAt?: string;
   forwardedToAdminAt?: string;
 }
 
-type ReverseMode = "submitter" | "l1" | null;
-type CompletedAction = "approve" | "reverse" | "returnToL1" | null;
+type CompletedAction = "approve" | "returnToL1" | null;
 
 export function L2ActionPanel({
   employeeId,
@@ -40,7 +38,7 @@ export function L2ActionPanel({
 }: L2ActionPanelProps) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [reverseMode, setReverseMode] = useState<ReverseMode>(null);
+  const [showReturnToL1, setShowReturnToL1] = useState(false);
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -70,13 +68,20 @@ export function L2ActionPanel({
     !!forwardedToSupportAt ||
     !!forwardedToAdminAt;
 
+  const reversedTarget: "submitter" | "l1" | null =
+    completedAction === "returnToL1" || l2DecisionAction === "RETURN_TO_L1"
+      ? "l1"
+      : l2DecisionAction === "RETURN" || status === EmployeeStatus.L2_RETURNED
+        ? "submitter"
+        : null;
+
   async function submitApprove() {
     if (busy || completedAction) return;
     setError(null);
 
     setCompletedAction("approve");
     setSuccess("Approved — Temporary Employee ID is being generated and sent to Admin.");
-    setReverseMode(null);
+    setShowReturnToL1(false);
 
     const fd = new FormData();
     fd.set("employeeId", employeeId);
@@ -103,8 +108,8 @@ export function L2ActionPanel({
     }
   }
 
-  async function submitReverse() {
-    if (busy || completedAction || !reverseMode) return;
+  async function submitReturnToL1() {
+    if (busy || completedAction) return;
     setError(null);
     setBusy(true);
 
@@ -113,32 +118,16 @@ export function L2ActionPanel({
     fd.set("comment", comment);
 
     try {
-      if (reverseMode === "l1") {
-        const result = await l2ReturnToL1Action(fd);
-        if (!result.success) {
-          setError(result.error ?? "Action failed");
-          setBusy(false);
-          return;
-        }
-        setCompletedAction("returnToL1");
-        setReverseMode(null);
-        setComment("");
-        setSuccess("Sent back to L1 with your note.");
-        setBusy(false);
-        router.refresh();
-        return;
-      }
-
-      const result = await l2ReturnAction(fd);
+      const result = await l2ReturnToL1Action(fd);
       if (!result.success) {
         setError(result.error ?? "Action failed");
         setBusy(false);
         return;
       }
-      setCompletedAction("reverse");
-      setReverseMode(null);
+      setCompletedAction("returnToL1");
+      setShowReturnToL1(false);
       setComment("");
-      setSuccess("Reversed — sent back to submitter with your note.");
+      setSuccess("Sent back to L1 with your note.");
       setBusy(false);
       router.refresh();
     } catch {
@@ -154,6 +143,7 @@ export function L2ActionPanel({
     !forwardedToAdminAt &&
     !isRejected &&
     !isApproved &&
+    !reversedTarget &&
     !success
   ) {
     return null;
@@ -189,6 +179,21 @@ export function L2ActionPanel({
           <div className="rounded-md bg-red-50 px-4 py-3">
             <p className="text-sm font-medium text-red-800">Rejected at L2</p>
             <p className="text-xs text-red-700">Not forwarded to Admin.</p>
+          </div>
+        )}
+
+        {reversedTarget && !isApproved && !isRejected && (
+          <div className="rounded-md bg-amber-50 px-4 py-3">
+            <p className="text-sm font-medium text-amber-900">
+              {reversedTarget === "l1"
+                ? "Sent back to L1 Approver"
+                : "Reversed to Submitter"}
+            </p>
+            <p className="text-xs text-amber-800">
+              {reversedTarget === "l1"
+                ? "Listed under Reversed Applications until L1 re-approves it."
+                : "Listed under Reversed Applications until the submitter resubmits."}
+            </p>
           </div>
         )}
 
@@ -233,7 +238,7 @@ export function L2ActionPanel({
                 size="sm"
                 disabled={busy}
                 onClick={() => {
-                  setReverseMode("l1");
+                  setShowReturnToL1(true);
                   setComment("");
                   setError(null);
                 }}
@@ -241,30 +246,13 @@ export function L2ActionPanel({
                 <ArrowLeftCircle className="h-4 w-4" />
                 Send Back to L1
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={busy}
-                onClick={() => {
-                  setReverseMode("submitter");
-                  setComment("");
-                  setError(null);
-                }}
-              >
-                <Undo2 className="h-4 w-4" />
-                Reverse to Submitter
-              </Button>
             </div>
           </div>
         )}
 
-        {reverseMode && canReview && (
+        {showReturnToL1 && canReview && (
           <div className="space-y-3 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-            <Label htmlFor="l2-reverse-note">
-              {reverseMode === "l1"
-                ? "Note for L1 Approver"
-                : "Reverse note for submitter"}
-            </Label>
+            <Label htmlFor="l2-reverse-note">Note for L1 Approver</Label>
             <Textarea
               id="l2-reverse-note"
               rows={4}
@@ -278,15 +266,15 @@ export function L2ActionPanel({
                 size="sm"
                 isLoading={busy}
                 disabled={comment.trim().length < 10 || busy}
-                onClick={() => void submitReverse()}
+                onClick={() => void submitReturnToL1()}
               >
-                {reverseMode === "l1" ? "Confirm Send Back to L1" : "Confirm Reverse"}
+                Confirm Send Back to L1
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 disabled={busy}
-                onClick={() => setReverseMode(null)}
+                onClick={() => setShowReturnToL1(false)}
               >
                 Cancel
               </Button>

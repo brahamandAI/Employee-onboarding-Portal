@@ -46,7 +46,7 @@ export interface IEmployee extends Document {
   idGeneratedAt?: Date;
   assignedL2Id?: mongoose.Types.ObjectId;
   l2Decision?: {
-    action: "APPROVE" | "REJECT" | "RETURN" | "FORWARD";
+    action: "APPROVE" | "REJECT" | "RETURN" | "RETURN_TO_L1" | "FORWARD";
     comment?: string;
     decidedBy: mongoose.Types.ObjectId;
     decidedAt: Date;
@@ -131,7 +131,10 @@ const EmployeeSchema = new Schema<IEmployee>(
     idGeneratedAt: { type: Date },
     assignedL2Id: { type: Schema.Types.ObjectId, ref: "User", index: true },
     l2Decision: {
-      action: { type: String, enum: ["APPROVE", "REJECT", "RETURN", "FORWARD"] },
+      action: {
+        type: String,
+        enum: ["APPROVE", "REJECT", "RETURN", "RETURN_TO_L1", "FORWARD"],
+      },
       comment: { type: String },
       decidedBy: { type: Schema.Types.ObjectId, ref: "User" },
       decidedAt: { type: Date },
@@ -154,6 +157,9 @@ const EmployeeSchema = new Schema<IEmployee>(
 
 EmployeeSchema.index({ email: 1, status: 1 });
 EmployeeSchema.index({ status: 1, createdAt: -1 });
+// Supports the dashboard live-update watermark queries
+EmployeeSchema.index({ updatedAt: -1 });
+EmployeeSchema.index({ status: 1, updatedAt: -1 });
 
 if (process.env.NODE_ENV === "development" && mongoose.models.Employee) {
   delete mongoose.models.Employee;

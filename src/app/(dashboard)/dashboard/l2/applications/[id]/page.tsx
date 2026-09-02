@@ -4,8 +4,12 @@ import { UserRole } from "@/types/enums";
 import { getEmployeeDetailForReview } from "@/lib/services/approval.service";
 import { EmployeeDetailView } from "@/features/l2/components/EmployeeDetailView";
 import { DashboardBackLink } from "@/components/dashboard/DashboardBackLink";
+import { mapReviewDocuments } from "@/features/documents/utils/map-review-documents";
 
 export const metadata = { title: "Application Details | L2" };
+
+/** Always read the latest decision state so the status stays live. */
+export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -94,11 +98,7 @@ export default async function L2EmployeeDetailPage({ params }: PageProps) {
             }
           ).pendingFieldChanges,
         }}
-        documents={documents.map((d) => ({
-          documentType: d.documentType,
-          fileName: d.fileName,
-          url: d.url,
-        }))}
+        documents={mapReviewDocuments(documents)}
         history={history.map((h) => ({
           action: h.action,
           fromStatus: h.fromStatus,

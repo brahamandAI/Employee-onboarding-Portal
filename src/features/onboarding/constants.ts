@@ -125,8 +125,10 @@ export const DECLARATION_TEXT =
 export const APPLICANT_POLICE_VERIFICATION_DECLARATION =
   "I will submit my Police Verification Certificate within 15 days from the Date of Joining (DOJ). If I fail to submit the Police Verification Certificate within the stipulated period, the company may take suitable action.";
 
-export const COMPUTER_GENERATED_NOTE =
-  "This application is software-based and computer-generated. The particulars herein are as submitted digitally through the Employee Onboarding Portal of Rakshak Securitas Pvt Ltd. No physical handwritten form is required for this submission.";
+export const DIGITAL_SUBMISSION_NOTICE_TITLE = "Important Information";
+
+export const DIGITAL_SUBMISSION_NOTICE =
+  "This Employment Form is submitted electronically through the official Employee Onboarding Portal of Rakshak Securitas Pvt Ltd. The particulars recorded here are exactly as entered by the applicant and, together with the digital signature below, are treated as a valid and binding submission. A separate printed or handwritten form is not required.";
 
 export const EMPLOYMENT_FORM_TITLE = "EMPLOYMENT FORM";
 export const EMPLOYMENT_FORM_SUBTITLE = "Rakshak Securitas Pvt Ltd — Employee Onboarding";

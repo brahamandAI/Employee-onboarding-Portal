@@ -40,6 +40,9 @@ export function L1ActionPanel({
     completedAction === null &&
     [EmployeeStatus.SUBMITTED, EmployeeStatus.L1_REVIEW].includes(status);
 
+  const isReversed =
+    completedAction === "reverse" || status === EmployeeStatus.L1_RETURNED;
+
   async function submitApprove() {
     if (busy || completedAction) return;
     setError(null);
@@ -96,7 +99,7 @@ export function L1ActionPanel({
     }
   }
 
-  if (!canReview && !employeeIdCode && !success) {
+  if (!canReview && !employeeIdCode && !isReversed && !success) {
     return null;
   }
 
@@ -115,6 +118,17 @@ export function L1ActionPanel({
           <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
             {error}
           </p>
+        )}
+
+        {isReversed && (
+          <div className="rounded-md bg-amber-50 px-4 py-3">
+            <p className="text-sm font-medium text-amber-900">
+              Reversed to Submitter
+            </p>
+            <p className="text-xs text-amber-800">
+              Listed under Reversed Applications until the submitter resubmits.
+            </p>
+          </div>
         )}
 
         {employeeIdCode && (

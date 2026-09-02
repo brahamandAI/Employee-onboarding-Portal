@@ -117,7 +117,17 @@ export async function performL1Approve(
   };
   employee.l1ApprovedAt = new Date();
   employee.correctionNotes = undefined;
+  const clearL2SendBack = employee.l2Decision?.action === "RETURN_TO_L1";
   await employee.save();
+
+  // A previous L2 send-back is resolved once L1 re-approves, so the application
+  // leaves the L2 reversed list and re-enters the L2 queue.
+  if (clearL2SendBack) {
+    await Employee.updateOne(
+      { _id: employee._id },
+      { $unset: { l2Decision: "" } }
+    );
+  }
 
   await recordHistory({
     employeeId: employee._id,
@@ -449,7 +459,14 @@ export async function performL2ReturnToL1(
   employee.correctionNotes = comment;
   employee.l1Decision = undefined;
   employee.l1ApprovedAt = undefined;
-  employee.l2Decision = undefined;
+  // Keep the L2 trail so the send-back stays visible on the L2 reversed list
+  // until L1 re-approves it.
+  employee.l2Decision = {
+    action: "RETURN_TO_L1",
+    comment,
+    decidedBy: new mongoose.Types.ObjectId(reviewerId),
+    decidedAt: new Date(),
+  };
   await employee.save();
 
   await recordHistory({

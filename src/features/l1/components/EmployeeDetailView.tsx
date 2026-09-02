@@ -3,15 +3,14 @@ import { StatusBadge } from "@/features/l1/components/StatusBadge";
 import { L1ActionPanel } from "@/features/l1/components/L1ActionPanel";
 import { FieldChangesPanel } from "@/features/approval/components/FieldChangesPanel";
 import { ApprovalTimeline } from "@/components/dashboard/ApprovalTimeline";
+import { LiveBadge } from "@/components/dashboard/LiveBadge";
+import {
+  DocumentPreviewGrid,
+  PreviewDocument,
+} from "@/features/documents/components/DocumentPreviewGrid";
 import { EmployeeStatus } from "@/types/enums";
-import { ExternalLink, Pencil, History } from "lucide-react";
+import { Pencil, History, Undo2 } from "lucide-react";
 import Link from "next/link";
-
-interface DocumentItem {
-  documentType: string;
-  fileName: string;
-  url: string;
-}
 
 interface HistoryItem {
   action: string;
@@ -48,6 +47,12 @@ interface EmployeeDetailViewProps {
       decidedAt?: Date;
       decidedBy?: { name?: string; email?: string } | null;
     };
+    l2Decision?: {
+      action: string;
+      comment?: string;
+      decidedAt?: Date;
+      decidedBy?: { name?: string; email?: string } | null;
+    };
     correctionNotes?: string;
     rejectionReason?: string;
     pendingFieldChanges?: Array<{
@@ -57,8 +62,14 @@ interface EmployeeDetailViewProps {
       newValue: string;
     }>;
   };
-  documents: DocumentItem[];
+  documents: PreviewDocument[];
   history: HistoryItem[];
+}
+
+/** Cards are skipped entirely when a section has nothing to show. */
+function hasValues(data?: Record<string, unknown> | null): boolean {
+  if (!data) return false;
+  return Object.values(data).some((v) => v !== undefined && v !== null && v !== "");
 }
 
 function DetailSection({
@@ -84,7 +95,7 @@ function KeyValueGrid({ data }: { data: Record<string, unknown> }) {
   );
 
   if (entries.length === 0) {
-    return <p className="text-sm text-[#64748B]">No data provided.</p>;
+    return null;
   }
 
   return (
@@ -114,6 +125,10 @@ export function EmployeeDetailView({
 }: EmployeeDetailViewProps) {
   const personal = employee.personalDetails ?? {};
   const fullName = (personal.fullName as string) ?? "Unknown";
+  const reversedFromL2 = employee.l2Decision?.action === "RETURN_TO_L1";
+  const l2ReverseNote = reversedFromL2
+    ? (employee.l2Decision?.comment ?? employee.correctionNotes)
+    : undefined;
 
   return (
     <div className="space-y-6">
@@ -125,6 +140,7 @@ export function EmployeeDetailView({
           <p className="text-[#64748B]">{employee.applicationRef}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <StatusBadge status={employee.status} />
+            <LiveBadge />
             {employee.employeeId && (
               <span className="font-mono text-sm text-primary">
                 ID: {employee.employeeId}
@@ -147,6 +163,30 @@ export function EmployeeDetailView({
           </Link>
         )}
       </div>
+
+      {reversedFromL2 && (
+        <div className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4">
+          <Undo2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-amber-900">
+              Reversed from L2 — re-review required
+            </p>
+            {l2ReverseNote && (
+              <p className="mt-1 text-sm leading-relaxed text-amber-800">
+                {l2ReverseNote}
+              </p>
+            )}
+            <p className="mt-1 text-xs text-amber-700">
+              {employee.l2Decision?.decidedBy?.name
+                ? `Sent back by ${employee.l2Decision.decidedBy.name}`
+                : "Sent back by L2"}
+              {employee.l2Decision?.decidedAt
+                ? ` on ${new Date(employee.l2Decision.decidedAt).toLocaleString("en-IN")}`
+                : ""}
+            </p>
+          </div>
+        </div>
+      )}
 
       <FieldChangesPanel changes={employee.pendingFieldChanges} />
 
@@ -172,14 +212,10 @@ export function EmployeeDetailView({
         </div>
       )}
 
-      {(employee.correctionNotes || employee.rejectionReason) && (
+      {!reversedFromL2 && (employee.correctionNotes || employee.rejectionReason) && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
           <p className="text-sm font-medium">
-            {employee.status === EmployeeStatus.L1_REVIEW && employee.correctionNotes
-              ? "Note from L2 (sent back to L1)"
-              : employee.rejectionReason
-                ? "Reverse Note"
-                : "Correction Notes"}
+            {employee.rejectionReason ? "Reverse Note" : "Correction Notes"}
           </p>
           <p className="mt-1 text-sm">
             {employee.rejectionReason ?? employee.correctionNotes}
@@ -205,33 +241,33 @@ export function EmployeeDetailView({
           <KeyValueGrid data={personal} />
         </DetailSection>
 
-        {employee.address && (
+        {hasValues(employee.address) && (
           <DetailSection title="Address">
             <KeyValueGrid data={employee.address as Record<string, unknown>} />
           </DetailSection>
         )}
 
-        {employee.nominee && (
+        {hasValues(employee.nominee) && (
           <DetailSection title="Nominee">
-            <KeyValueGrid data={employee.nominee} />
+            <KeyValueGrid data={employee.nominee!} />
           </DetailSection>
         )}
 
-        {employee.exServiceman && (
+        {hasValues(employee.exServiceman) && (
           <DetailSection title="Ex Serviceman">
-            <KeyValueGrid data={employee.exServiceman} />
+            <KeyValueGrid data={employee.exServiceman!} />
           </DetailSection>
         )}
 
-        {employee.gunman && (
+        {hasValues(employee.gunman) && (
           <DetailSection title="Gunman">
-            <KeyValueGrid data={employee.gunman} />
+            <KeyValueGrid data={employee.gunman!} />
           </DetailSection>
         )}
 
-        {employee.additionalDetails && (
+        {hasValues(employee.additionalDetails) && (
           <DetailSection title="Additional Details">
-            <KeyValueGrid data={employee.additionalDetails} />
+            <KeyValueGrid data={employee.additionalDetails!} />
           </DetailSection>
         )}
       </div>
@@ -270,28 +306,13 @@ export function EmployeeDetailView({
         </DetailSection>
       )}
 
-      <DetailSection title="Documents">
-        {documents.length === 0 ? (
-          <p className="text-sm text-[#64748B]">No documents uploaded.</p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {documents.map((doc) => (
-              <a
-                key={doc.documentType}
-                href={doc.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-lg border border-[#E2E8F0] p-3 text-sm hover:bg-[#F8FAFC]"
-              >
-                <ExternalLink className="h-4 w-4 shrink-0 text-primary" />
-                <div>
-                  <p className="font-medium text-primary">{doc.documentType}</p>
-                  <p className="truncate text-xs text-[#64748B]">{doc.fileName}</p>
-                </div>
-              </a>
-            ))}
-          </div>
-        )}
+      <DetailSection
+        title={`Documents${documents.length > 0 ? ` (${documents.length})` : ""}`}
+      >
+        <p className="mb-3 text-sm text-[#64748B]">
+          Use Preview to open a document, or Download to save a copy.
+        </p>
+        <DocumentPreviewGrid documents={documents} />
       </DetailSection>
 
       {history.length > 0 && (

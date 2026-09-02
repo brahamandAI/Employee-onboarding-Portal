@@ -3,10 +3,14 @@ import { StatusBadge } from "@/features/l1/components/StatusBadge";
 import { L2ActionPanel } from "@/features/l2/components/L2ActionPanel";
 import { FieldChangesPanel } from "@/features/approval/components/FieldChangesPanel";
 import { EmployeeDocumentsFolderPanel } from "@/features/documents/components/EmployeeDocumentsFolderPanel";
+import {
+  DocumentPreviewGrid,
+  PreviewDocument,
+} from "@/features/documents/components/DocumentPreviewGrid";
 import { ApprovalTimeline } from "@/components/dashboard/ApprovalTimeline";
+import { LiveBadge } from "@/components/dashboard/LiveBadge";
 import { EmployeeStatus } from "@/types/enums";
 import {
-  ExternalLink,
   LucideIcon,
   User,
   MapPin,
@@ -20,12 +24,6 @@ import {
   Contact,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface DocumentItem {
-  documentType: string;
-  fileName: string;
-  url: string;
-}
 
 interface HistoryItem {
   action: string;
@@ -61,7 +59,7 @@ interface EmployeeDetailViewProps {
       decidedBy?: { name?: string; email?: string } | null;
     };
     l2Decision?: {
-      action: "APPROVE" | "REJECT" | "RETURN" | "FORWARD";
+      action: "APPROVE" | "REJECT" | "RETURN" | "RETURN_TO_L1" | "FORWARD";
       comment?: string;
       decidedAt?: Date;
       decidedBy?: { name?: string; email?: string } | null;
@@ -79,8 +77,14 @@ interface EmployeeDetailViewProps {
       newValue: string;
     }>;
   };
-  documents: DocumentItem[];
+  documents: PreviewDocument[];
   history: HistoryItem[];
+}
+
+/** Cards are skipped entirely when a section has nothing to show. */
+function hasValues(data?: Record<string, unknown> | null): boolean {
+  if (!data) return false;
+  return Object.values(data).some((v) => v !== undefined && v !== null && v !== "");
 }
 
 function DetailSection({
@@ -117,7 +121,7 @@ function KeyValueGrid({ data }: { data: Record<string, unknown> }) {
   );
 
   if (entries.length === 0) {
-    return <p className="text-sm text-[#64748B]">No data provided.</p>;
+    return null;
   }
 
   return (
@@ -162,6 +166,7 @@ export function EmployeeDetailView({
             <p className="mt-1 text-sm text-[#64748B]">{employee.applicationRef}</p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <StatusBadge status={employee.status} />
+              <LiveBadge />
               {employee.temporaryEmployeeId && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-800">
                   <IdCard className="h-3.5 w-3.5" />
@@ -242,33 +247,33 @@ export function EmployeeDetailView({
           <KeyValueGrid data={personal} />
         </DetailSection>
 
-        {employee.address && (
+        {hasValues(employee.address) && (
           <DetailSection title="Address" icon={MapPin}>
             <KeyValueGrid data={employee.address as Record<string, unknown>} />
           </DetailSection>
         )}
 
-        {employee.nominee && (
+        {hasValues(employee.nominee) && (
           <DetailSection title="Nominee" icon={HeartHandshake}>
-            <KeyValueGrid data={employee.nominee} />
+            <KeyValueGrid data={employee.nominee!} />
           </DetailSection>
         )}
 
-        {employee.exServiceman && (
+        {hasValues(employee.exServiceman) && (
           <DetailSection title="Ex Serviceman" icon={Shield}>
-            <KeyValueGrid data={employee.exServiceman} />
+            <KeyValueGrid data={employee.exServiceman!} />
           </DetailSection>
         )}
 
-        {employee.gunman && (
+        {hasValues(employee.gunman) && (
           <DetailSection title="Gunman" icon={Shield}>
-            <KeyValueGrid data={employee.gunman} />
+            <KeyValueGrid data={employee.gunman!} />
           </DetailSection>
         )}
 
-        {employee.additionalDetails && (
+        {hasValues(employee.additionalDetails) && (
           <DetailSection title="Additional Details" icon={FileText}>
-            <KeyValueGrid data={employee.additionalDetails} />
+            <KeyValueGrid data={employee.additionalDetails!} />
           </DetailSection>
         )}
         </div>
@@ -308,28 +313,14 @@ export function EmployeeDetailView({
         </DetailSection>
       )}
 
-      <DetailSection title="Uploaded Documents" icon={FileText}>
-        {documents.length === 0 ? (
-          <p className="text-sm text-[#64748B]">No documents uploaded.</p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {documents.map((doc) => (
-              <a
-                key={doc.documentType}
-                href={doc.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-lg border border-[#E2E8F0] p-3 text-sm hover:bg-[#F8FAFC]"
-              >
-                <ExternalLink className="h-4 w-4 shrink-0 text-primary" />
-                <div>
-                  <p className="font-medium text-primary">{doc.documentType}</p>
-                  <p className="truncate text-xs text-[#64748B]">{doc.fileName}</p>
-                </div>
-              </a>
-            ))}
-          </div>
-        )}
+      <DetailSection
+        title={`Uploaded Documents${documents.length > 0 ? ` (${documents.length})` : ""}`}
+        icon={FileText}
+      >
+        <p className="mb-3 text-sm text-[#64748B]">
+          Use Preview to open a document, or Download to save a copy.
+        </p>
+        <DocumentPreviewGrid documents={documents} />
       </DetailSection>
 
       {(employee.temporaryEmployeeId ||
