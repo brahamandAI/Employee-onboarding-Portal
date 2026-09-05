@@ -223,8 +223,8 @@ async function seed() {
 
     const emp = await Employee.create({
       ...sample,
-      currentStep: 10,
-      completedSteps: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      currentStep: 7,
+      completedSteps: [1, 2, 3, 4, 5, 6, 7],
     });
     console.log(`Created employee: ${sample.applicationRef} (${sample.status})`);
 
@@ -248,3 +248,4 @@ seed().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+

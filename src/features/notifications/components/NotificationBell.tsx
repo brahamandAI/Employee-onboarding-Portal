@@ -17,7 +17,7 @@ export function NotificationBell({
     <Link
       href={href}
       className={cn(
-        "relative inline-flex h-9 w-9 items-center justify-center rounded-md text-primary transition-colors hover:bg-muted",
+        "relative inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-primary shadow-sm transition hover:border-sky-200 hover:bg-[#EFF6FF]",
         className
       )}
       aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}

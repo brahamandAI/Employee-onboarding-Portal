@@ -10,6 +10,8 @@ import {
   performL2ReturnToL1,
   performForwardToSupport,
   ApprovalError,
+  isNextRedirectError,
+  describeApprovalFailure,
 } from "@/lib/services/approval.service";
 import {
   l2ApproveSchema,
@@ -78,13 +80,22 @@ export async function l2ApproveAction(
       user.id,
       parsed.data.comment
     );
-    revalidateL2(parsed.data.employeeId);
+    try {
+      revalidateL2(parsed.data.employeeId);
+    } catch (error) {
+      console.error("[l2-approve] revalidate", error);
+    }
     return { success: true, data: result };
   } catch (error) {
+    if (isNextRedirectError(error)) throw error;
     if (error instanceof ApprovalError) {
       return { success: false, error: error.message, code: error.code };
     }
-    return { success: false, error: "Approval failed" };
+    console.error("[l2-approve]", error);
+    return {
+      success: false,
+      error: describeApprovalFailure(error, "Approval failed"),
+    };
   }
 }
 

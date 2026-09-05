@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import {
   LucideIcon,
   LayoutDashboard,
@@ -26,6 +27,8 @@ import { getRoleLabel } from "@/lib/auth/permissions";
 import { SidebarNotificationBadge } from "@/features/notifications/components/NotificationBell";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { useDashboardChrome } from "@/components/layout/dashboard/DashboardChromeContext";
+import { prefetchEmployeeFolders } from "@/features/documents/lib/folders-cache";
+import { DeferredUnreadCount } from "@/components/dashboard/DeferredUnreadCount";
 
 interface NavItem {
   label: string;
@@ -141,7 +144,7 @@ const ROLE_BADGE: Record<StaffRole, { icon: LucideIcon; className: string }> = {
 
 interface DashboardSidebarProps {
   role: StaffRole;
-  unreadCount?: number;
+  unreadCountPromise: Promise<number>;
 }
 
 function isNavActive(pathname: string, href: string, role: StaffRole): boolean {
@@ -164,9 +167,10 @@ function isNavActive(pathname: string, href: string, role: StaffRole): boolean {
   return pathname === hrefPath || pathname.startsWith(`${hrefPath}/`);
 }
 
-export function DashboardSidebar({ role, unreadCount = 0 }: DashboardSidebarProps) {
+export function DashboardSidebar({ role, unreadCountPromise }: DashboardSidebarProps) {
   const pathname = usePathname();
-  const { collapsed, setCollapsed } = useDashboardChrome();
+  const router = useRouter();
+  const { collapsed, desktopCollapsed, setCollapsed } = useDashboardChrome();
   const navConfig = NAV_ITEMS[role];
   const sections: NavSection[] = SECTIONED_ROLES.has(role)
     ? (navConfig as NavSection[])
@@ -193,12 +197,30 @@ export function DashboardSidebar({ role, unreadCount = 0 }: DashboardSidebarProp
     }
   }
 
+  function prefetchNavItem(href: string) {
+    router.prefetch(href);
+    if (href.includes("/documents")) {
+      void prefetchEmployeeFolders();
+    }
+  }
+
+  useEffect(() => {
+    for (const section of sections) {
+      for (const item of section.items) {
+        prefetchNavItem(item.href);
+      }
+    }
+    // Prefetch once per role so switching users/roles still warms the new menu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sections is derived from role
+  }, [role]);
+
   return (
     <>
       {/* Mobile overlay */}
       {!collapsed && (
         <button
           type="button"
+          suppressHydrationWarning
           aria-label="Close sidebar"
           className="fixed inset-0 z-40 bg-[#0B1F3A]/45 backdrop-blur-[1px] lg:hidden"
           onClick={() => setCollapsed(true)}
@@ -207,51 +229,89 @@ export function DashboardSidebar({ role, unreadCount = 0 }: DashboardSidebarProp
 
       <aside
         className={cn(
-          "relative z-50 flex h-full w-[17rem] shrink-0 flex-col overflow-hidden text-white",
-          "max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:shadow-2xl max-lg:transition-transform max-lg:duration-300",
+          "relative z-50 flex h-full shrink-0 flex-col overflow-hidden text-white",
+          "max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:w-[17rem] max-lg:shadow-2xl max-lg:transition-transform max-lg:duration-300",
           collapsed ? "max-lg:-translate-x-full" : "max-lg:translate-x-0",
-          "lg:static lg:translate-x-0"
+          "lg:static lg:translate-x-0 lg:transition-[width] lg:duration-200",
+          desktopCollapsed ? "lg:w-[4.85rem]" : "lg:w-[17rem]"
         )}
       >
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#050D18] via-[#0A1A32] to-[#0E2748]" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_50%_at_20%_-10%,rgba(56,189,248,0.18),transparent_55%),radial-gradient(ellipse_70%_40%_at_90%_5%,rgba(212,175,55,0.12),transparent_50%)]" />
 
-        {/* Branding — logo only (no duplicate portal titles) */}
-        <div className="relative shrink-0 border-b border-white/[0.08] px-3.5 pb-4 pt-4">
+        {/* Branding — original logo aspect ratio, no crop */}
+        <div
+          className={cn(
+            "relative shrink-0 border-b border-white/[0.08]",
+            desktopCollapsed ? "px-2 pb-3 pt-3" : "px-3.5 pb-4 pt-4"
+          )}
+        >
           <Link
             href={dashboardHome}
             onClick={handleNavClick}
-            className="block rounded-xl bg-white/[0.04] px-2.5 py-2.5 ring-1 ring-inset ring-white/[0.08] transition-colors hover:bg-white/[0.07]"
+            className={cn(
+              "flex items-center rounded-xl bg-white/[0.06] ring-1 ring-inset ring-white/[0.1] transition-colors hover:bg-white/[0.1]",
+              desktopCollapsed ? "justify-center px-1.5 py-2" : "px-2.5 py-2.5"
+            )}
             aria-label="Rakshak Enrollment Portal home"
+            title="Rakshak Enrollment Portal"
           >
             <BrandLogo
               href={null}
               variant="sidebar"
               priority
-              className="max-w-[240px]"
+              className={desktopCollapsed ? "max-w-[52px]" : "max-w-[240px]"}
             />
           </Link>
 
-          <div className="mt-3.5 px-0.5">
+          <div className={cn("mt-3.5 px-0.5", desktopCollapsed && "hidden lg:hidden")}>
             <span
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]",
-                roleBadge.className
+                roleBadge.className,
+                desktopCollapsed && "lg:hidden"
               )}
             >
               <RoleIcon className="h-3 w-3" />
               {getRoleLabel(role)}
             </span>
           </div>
+          {desktopCollapsed && (
+            <div className="mt-2 hidden justify-center lg:flex" title={getRoleLabel(role)}>
+              <span
+                className={cn(
+                  "inline-flex h-8 w-8 items-center justify-center rounded-lg border",
+                  roleBadge.className
+                )}
+              >
+                <RoleIcon className="h-3.5 w-3.5" />
+              </span>
+            </div>
+          )}
         </div>
 
-        <nav className="relative min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-3 py-4 scrollbar-none">
+        <nav
+          className={cn(
+            "relative min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain py-4 scrollbar-none",
+            desktopCollapsed ? "px-2" : "px-3"
+          )}
+        >
           {sections.map((section, idx) => (
             <div key={section.title ?? idx}>
               {section.title && (
-                <div className="mb-2.5 flex items-center gap-2 px-2.5">
+                <div
+                  className={cn(
+                    "mb-2.5 flex items-center gap-2 px-2.5",
+                    desktopCollapsed && "lg:justify-center lg:px-0"
+                  )}
+                >
                   <Compass className="h-3 w-3 text-white/35" />
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+                  <p
+                    className={cn(
+                      "text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40",
+                      desktopCollapsed && "lg:hidden"
+                    )}
+                  >
                     {section.title}
                   </p>
                 </div>
@@ -267,15 +327,24 @@ export function DashboardSidebar({ role, unreadCount = 0 }: DashboardSidebarProp
                       href={item.href}
                       prefetch
                       onClick={handleNavClick}
+                      onMouseEnter={() => prefetchNavItem(item.href)}
+                      onFocus={() => prefetchNavItem(item.href)}
+                      title={item.label}
                       className={cn(
-                        "group relative flex h-11 items-center gap-3 rounded-xl px-3 text-sm transition-all duration-200",
+                        "group relative flex h-11 items-center gap-3 rounded-xl text-sm transition-colors duration-150",
+                        desktopCollapsed ? "px-3 lg:justify-center lg:px-0" : "px-3",
                         isActive
                           ? "bg-white/[0.14] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
                           : "text-white/70 hover:bg-white/[0.08] hover:text-white"
                       )}
                     >
                       {isActive && (
-                        <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-full bg-gradient-to-b from-accent to-[#F5D76E]" />
+                        <span
+                          className={cn(
+                            "absolute inset-y-1.5 left-0 w-[3px] rounded-full bg-gradient-to-b from-accent to-[#F5D76E]",
+                            desktopCollapsed && "lg:left-1"
+                          )}
+                        />
                       )}
                       <span
                         className={cn(
@@ -287,11 +356,22 @@ export function DashboardSidebar({ role, unreadCount = 0 }: DashboardSidebarProp
                       >
                         <Icon className="h-[18px] w-[18px]" strokeWidth={1.9} />
                       </span>
-                      <span className="truncate font-medium tracking-tight">
+                      <span
+                        className={cn(
+                          "truncate font-medium tracking-tight",
+                          desktopCollapsed && "lg:hidden"
+                        )}
+                      >
                         {item.label}
                       </span>
                       {item.label === "Notifications" && (
-                        <SidebarNotificationBadge unreadCount={unreadCount} />
+                        <span className={cn(desktopCollapsed && "lg:absolute lg:right-1 lg:top-1")}>
+                          <DeferredUnreadCount promise={unreadCountPromise}>
+                            {(unreadCount) => (
+                              <SidebarNotificationBadge unreadCount={unreadCount} />
+                            )}
+                          </DeferredUnreadCount>
+                        </span>
                       )}
                     </Link>
                   );

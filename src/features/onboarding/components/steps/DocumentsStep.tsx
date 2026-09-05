@@ -13,9 +13,12 @@ import { FormSection } from "@/features/onboarding/components/FormSection";
 
 interface StepProps {
   documents: DocumentRecord[];
-  onDocumentsChange: (documents: DocumentRecord[]) => void;
+  onDocumentsChange: (
+    documents: DocumentRecord[] | ((prev: DocumentRecord[]) => DocumentRecord[])
+  ) => void;
   isExServiceman?: boolean;
   isGunman?: boolean;
+  ensureApplicationReady?: () => Promise<boolean>;
 }
 
 export function DocumentsStep({
@@ -23,20 +26,21 @@ export function DocumentsStep({
   onDocumentsChange,
   isExServiceman = false,
   isGunman = false,
+  ensureApplicationReady,
 }: StepProps) {
   function getDoc(type: DocumentType) {
     return documents.find((d) => d.documentType === type);
   }
 
   function handleUploaded(doc: DocumentRecord) {
-    onDocumentsChange([
-      ...documents.filter((d) => d.documentType !== doc.documentType),
+    onDocumentsChange((prev) => [
+      ...prev.filter((d) => d.documentType !== doc.documentType),
       doc,
     ]);
   }
 
   function handleDeleted(type: DocumentType) {
-    onDocumentsChange(documents.filter((d) => d.documentType !== type));
+    onDocumentsChange((prev) => prev.filter((d) => d.documentType !== type));
   }
 
   const requiredDocs = getRequiredDocuments({ isExServiceman, isGunman });
@@ -85,6 +89,7 @@ export function DocumentsStep({
               required={requiredDocs.includes(type)}
               onUploaded={handleUploaded}
               onDeleted={handleDeleted}
+              ensureApplicationReady={ensureApplicationReady}
             />
           ))}
         </div>

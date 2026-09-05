@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Upload, FileText, X, Eye, Loader2, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -24,10 +24,15 @@ interface FileUploadFieldProps {
   required?: boolean;
   onUploaded: (doc: DocumentRecord) => void;
   onDeleted: (documentType: DocumentType) => void;
+  ensureApplicationReady?: () => Promise<boolean>;
 }
 
 function defaultFacingMode(documentType: DocumentType): "user" | "environment" {
   return documentType === DocumentType.PHOTO ? "user" : "environment";
+}
+
+function isLocalDocId(id: string) {
+  return id.startsWith("local-");
 }
 
 export function FileUploadField({
@@ -37,14 +42,31 @@ export function FileUploadField({
   required,
   onUploaded,
   onDeleted,
+  ensureApplicationReady,
 }: FileUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const previewUrlRef = useRef<string | null>(null);
+  const uploadGenRef = useRef(0);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
+
+  const setLocalPreview = useCallback((url: string | null) => {
+    if (previewUrlRef.current && previewUrlRef.current !== url) {
+      URL.revokeObjectURL(previewUrlRef.current);
+    }
+    previewUrlRef.current = url;
+    setPreview(url);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    };
+  }, []);
 
   const handleFile = useCallback(
     async (file: File) => {
@@ -59,60 +81,142 @@ export function FileUploadField({
         return;
       }
 
-      if (file.type.startsWith("image/")) {
-        setPreview(URL.createObjectURL(file));
-      } else {
-        setPreview(null);
-      }
+      const gen = ++uploadGenRef.current;
+      const localUrl = URL.createObjectURL(file);
+      setLocalPreview(localUrl);
 
+      const optimistic: DocumentRecord = {
+        _id: `local-${documentType}`,
+        documentType,
+        fileName: file.name,
+        mimeType: file.type || "application/octet-stream",
+        sizeBytes: file.size,
+        url: localUrl,
+        uploadedAt: new Date().toISOString(),
+      };
+      onUploaded(optimistic);
       setIsUploading(true);
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("documentType", documentType);
 
       try {
-        const res = await fetch("/api/documents/upload", {
-          method: "POST",
-          body: formData,
-        });
+        if (ensureApplicationReady) {
+          const ready = await ensureApplicationReady();
+          if (uploadGenRef.current !== gen) return;
+          if (!ready) {
+            onDeleted(documentType);
+            setLocalPreview(null);
+            setError("Application is still being created. Please try the upload again.");
+            return;
+          }
+        }
 
-        let json: { error?: string; data?: DocumentRecord } = {};
-        const text = await res.text();
+        const postFile = async () => {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("documentType", documentType);
+          return fetch("/api/documents/upload", {
+            method: "POST",
+            body: formData,
+          });
+        };
+
+        let res = await postFile();
+        if (uploadGenRef.current !== gen) return;
+
+        let text = await res.text();
+        let json: { error?: string; code?: string; data?: DocumentRecord } = {};
         if (text) {
           try {
-            json = JSON.parse(text) as { error?: string; data?: DocumentRecord };
+            json = JSON.parse(text) as {
+              error?: string;
+              code?: string;
+              data?: DocumentRecord;
+            };
           } catch {
+            onDeleted(documentType);
+            setLocalPreview(null);
             setError("Upload failed. Server returned an invalid response.");
             return;
           }
         }
 
+        const lockedOrUnauthorized =
+          res.status === 401 ||
+          json.code === "LOCKED" ||
+          json.error === "Application is locked";
+
+        if (!res.ok && lockedOrUnauthorized && ensureApplicationReady) {
+          const ready = await ensureApplicationReady();
+          if (uploadGenRef.current !== gen) return;
+          if (ready) {
+            res = await postFile();
+            if (uploadGenRef.current !== gen) return;
+            text = await res.text();
+            json = {};
+            if (text) {
+              try {
+                json = JSON.parse(text) as {
+                  error?: string;
+                  code?: string;
+                  data?: DocumentRecord;
+                };
+              } catch {
+                onDeleted(documentType);
+                setLocalPreview(null);
+                setError("Upload failed. Server returned an invalid response.");
+                return;
+              }
+            }
+          }
+        }
+
+        if (uploadGenRef.current !== gen) return;
+
         if (!res.ok) {
-          setError(json.error ?? "Upload failed");
+          onDeleted(documentType);
+          setLocalPreview(null);
+          setError(
+            json.error === "Application is locked"
+              ? "Upload is not ready yet. Please try again in a moment."
+              : json.error ?? "Upload failed"
+          );
           return;
         }
 
         if (!json.data) {
+          onDeleted(documentType);
+          setLocalPreview(null);
           setError("Upload failed. No document data returned.");
           return;
         }
 
         onUploaded(json.data);
       } catch {
+        if (uploadGenRef.current !== gen) return;
+        onDeleted(documentType);
+        setLocalPreview(null);
         setError("Upload failed. Please try again.");
       } finally {
-        setIsUploading(false);
+        if (uploadGenRef.current === gen) setIsUploading(false);
       }
     },
-    [documentType, onUploaded]
+    [documentType, onUploaded, onDeleted, ensureApplicationReady, setLocalPreview]
   );
 
   async function handleDelete() {
     if (!existing) return;
+    uploadGenRef.current += 1;
+    setIsUploading(false);
+
+    if (isLocalDocId(existing._id)) {
+      setLocalPreview(null);
+      onDeleted(documentType);
+      return;
+    }
+
     setIsDeleting(true);
     const result = await deleteDocumentAction(existing._id);
     if (result.success) {
-      setPreview(null);
+      setLocalPreview(null);
       onDeleted(documentType);
     }
     setIsDeleting(false);
@@ -120,7 +224,7 @@ export function FileUploadField({
 
   const isImage =
     existing?.mimeType.startsWith("image/") ||
-    preview !== null;
+    Boolean(preview?.startsWith("blob:"));
 
   const facingMode = defaultFacingMode(documentType);
 
@@ -140,7 +244,7 @@ export function FileUploadField({
           {existing && (
             <div className="flex gap-1">
               <a
-                href={existing.url}
+                href={preview ?? existing.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded p-1.5 text-[#64748B] hover:bg-[#F1F5F9] hover:text-primary"
@@ -179,7 +283,9 @@ export function FileUploadField({
                 {existing.fileName}
               </p>
               <p className="text-xs text-green-600">
-                {(existing.sizeBytes / 1024).toFixed(1)} KB · Uploaded
+                {isUploading
+                  ? "Saved on this form · storing securely…"
+                  : `${(existing.sizeBytes / 1024).toFixed(1)} KB · Uploaded`}
               </p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -188,7 +294,6 @@ export function FileUploadField({
                 variant="outline"
                 size="sm"
                 onClick={() => inputRef.current?.click()}
-                disabled={isUploading}
               >
                 Replace
               </Button>
@@ -198,7 +303,6 @@ export function FileUploadField({
                 size="sm"
                 className="gap-1.5"
                 onClick={() => setCameraOpen(true)}
-                disabled={isUploading}
               >
                 <Camera className="h-3.5 w-3.5" />
                 Retake
@@ -208,8 +312,7 @@ export function FileUploadField({
         ) : (
           <div
             className={cn(
-              "mt-3 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#CBD5E1] px-4 py-8 transition-colors hover:border-primary hover:bg-primary/5",
-              isUploading && "pointer-events-none opacity-60"
+              "mt-3 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#CBD5E1] px-4 py-8 transition-colors hover:border-primary hover:bg-primary/5"
             )}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
@@ -218,11 +321,7 @@ export function FileUploadField({
               if (file) handleFile(file);
             }}
           >
-            {isUploading ? (
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            ) : (
-              <Upload className="h-8 w-8 text-[#94A3B8]" />
-            )}
+            <Upload className="h-8 w-8 text-[#94A3B8]" />
             <p className="mt-2 text-sm text-[#64748B]">
               Upload a file or capture directly from your camera
             </p>
@@ -233,7 +332,6 @@ export function FileUploadField({
                 size="sm"
                 className="gap-2"
                 onClick={() => inputRef.current?.click()}
-                disabled={isUploading}
               >
                 <Upload className="h-4 w-4" />
                 Upload Photo
@@ -244,7 +342,6 @@ export function FileUploadField({
                 size="sm"
                 className="gap-2"
                 onClick={() => setCameraOpen(true)}
-                disabled={isUploading}
               >
                 <Camera className="h-4 w-4" />
                 Take Photo
@@ -267,7 +364,6 @@ export function FileUploadField({
           }}
         />
 
-        {/* Native mobile camera fallback */}
         <input
           ref={cameraInputRef}
           type="file"

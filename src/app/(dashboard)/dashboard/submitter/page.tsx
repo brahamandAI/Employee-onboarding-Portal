@@ -141,13 +141,11 @@ export default async function SubmitterDashboardPage({ searchParams }: PageProps
         />
       </div>
 
-      <div className="dashboard-panel">
-        <OnboardingWizardLoader
-          employee={displayEmployee}
-          registrationMode={registrationMode}
-          submitterMode
-        />
-      </div>
+      <OnboardingWizardLoader
+        employee={displayEmployee}
+        registrationMode={registrationMode}
+        submitterMode
+      />
     </div>
   );
 }

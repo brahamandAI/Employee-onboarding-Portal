@@ -19,17 +19,7 @@ export function AuthLayoutShell({
   return (
     <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#EEF3F9] px-4 py-10 sm:px-6">
       {/* Atmosphere */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_55%_at_50%_-15%,rgba(14,165,233,0.18),transparent_55%),radial-gradient(ellipse_50%_40%_at_100%_90%,rgba(11,31,58,0.1),transparent_50%),radial-gradient(ellipse_45%_35%_at_0%_85%,rgba(212,175,55,0.14),transparent_48%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.4] [background-image:linear-gradient(rgba(11,31,58,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(11,31,58,0.035)_1px,transparent_1px)] [background-size:32px_32px]" />
-      <div className="pointer-events-none absolute -left-16 top-24 h-56 w-56 animate-float rounded-full bg-sky-400/25 blur-3xl" />
-      <div
-        className="pointer-events-none absolute -right-10 bottom-20 h-64 w-64 animate-float rounded-full bg-[#D4AF37]/20 blur-3xl"
-        style={{ animationDelay: "1.2s" }}
-      />
-      <div
-        className="pointer-events-none absolute left-1/2 top-1/3 h-40 w-40 -translate-x-1/2 animate-float rounded-full bg-[#0B1F3A]/10 blur-3xl"
-        style={{ animationDelay: "0.6s" }}
-      />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_55%_at_50%_-15%,rgba(14,165,233,0.14),transparent_55%)]" />
 
       <div className="relative z-10 w-full max-w-[440px] animate-rise">
         {showBackHome && (

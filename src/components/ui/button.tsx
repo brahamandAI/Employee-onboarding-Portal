@@ -15,7 +15,8 @@ export interface ButtonProps
     | "sky"
     | "teal"
     | "success"
-    | "warning";
+    | "warning"
+    | "back";
   size?: "default" | "sm" | "lg" | "icon";
   isLoading?: boolean;
 }
@@ -39,7 +40,8 @@ const variantClasses: Record<NonNullable<ButtonProps["variant"]>, string> = {
     "bg-gradient-to-b from-[#EF4444] to-[#B91C1C] text-white shadow-sm hover:from-[#F87171] hover:to-[#991B1B] hover:shadow-md",
   ghost: "hover:bg-[#EFF6FF] text-primary",
   outline:
-    "border border-[#0B1F3A]/25 text-primary bg-white/80 hover:border-[#0B1F3A]/50 hover:bg-[#0B1F3A]/5",
+    "border border-[#0B1F3A]/20 text-primary bg-white hover:border-[#0B1F3A]/40 hover:bg-[#F8FAFC]",
+  back: "border border-[#E2E8F0] bg-white text-[#1D4ED8] shadow-sm hover:border-sky-200 hover:bg-[#EFF6FF]",
 };
 
 const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
@@ -66,7 +68,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       ref={ref}
       suppressHydrationWarning
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
+        "inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold leading-none transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:translate-y-px",
         variantClasses[variant],
         sizeClasses[size],
         className

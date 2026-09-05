@@ -9,9 +9,12 @@ import {
 } from "react";
 
 interface DashboardChromeValue {
-  /** On mobile: true = drawer closed. Desktop always treats as open. */
+  /** Mobile drawer closed when true */
   collapsed: boolean;
+  /** Desktop icon-rail when true */
+  desktopCollapsed: boolean;
   toggle: () => void;
+  toggleDesktop: () => void;
   setCollapsed: (value: boolean) => void;
 }
 
@@ -22,19 +25,27 @@ export function DashboardChromeProvider({
 }: {
   children: React.ReactNode;
 }) {
-  // Start closed on small screens; desktop sidebar is always visible via CSS
   const [collapsed, setCollapsedState] = useState(true);
+  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");
     function sync() {
-      // Desktop: keep "collapsed" false so mobile-only drawer CSS does not hide it
       if (mq.matches) setCollapsedState(false);
       else setCollapsedState(true);
     }
     sync();
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem("rs-sidebar-collapsed");
+      if (stored === "1") setDesktopCollapsed(true);
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const setCollapsed = useCallback((value: boolean) => {
@@ -45,8 +56,22 @@ export function DashboardChromeProvider({
     setCollapsedState((prev) => !prev);
   }, []);
 
+  const toggleDesktop = useCallback(() => {
+    setDesktopCollapsed((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem("rs-sidebar-collapsed", next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, []);
+
   return (
-    <DashboardChromeContext.Provider value={{ collapsed, toggle, setCollapsed }}>
+    <DashboardChromeContext.Provider
+      value={{ collapsed, desktopCollapsed, toggle, toggleDesktop, setCollapsed }}
+    >
       {children}
     </DashboardChromeContext.Provider>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -25,7 +25,6 @@ import {
 } from "@/features/onboarding/actions/onboarding.actions";
 import { registerAndSaveStep1Action } from "@/features/registration/actions/register.actions";
 import {
-  ONBOARDING_STEPS,
   ONBOARDING_TOTAL_STEPS,
   DocumentType,
   getRequiredDocuments,
@@ -40,6 +39,15 @@ interface OnboardingWizardProps {
   registrationMode?: boolean;
   submitterMode?: boolean;
   l1EditMode?: boolean;
+}
+
+function scrollFormChromeIntoView() {
+  requestAnimationFrame(() => {
+    document.getElementById("onboarding-form-chrome")?.scrollIntoView({
+      block: "start",
+      behavior: "instant",
+    });
+  });
 }
 
 export function OnboardingWizard({
@@ -64,10 +72,41 @@ export function OnboardingWizard({
   const [contactEmail, setContactEmail] = useState(employee.email);
   const [contactPhone, setContactPhone] = useState(employee.phone);
 
+  const employeeRef = useRef(employee);
+  employeeRef.current = employee;
+
+  const persistChainRef = useRef(Promise.resolve());
+  const persistFailedRef = useRef(false);
+  const advanceLockRef = useRef(false);
+  const sessionReadyRef = useRef(
+    Promise.resolve(Boolean(initialEmployee.applicationRef) || !registrationMode)
+  );
+  const sessionReadyResolveRef = useRef<((ok: boolean) => void) | undefined>(
+    undefined
+  );
+
   const isNewRegistration = registrationMode && !employee.applicationRef;
   const formId = `step-form-${currentStep}`;
-  const stepMeta = ONBOARDING_STEPS[currentStep - 1];
   const { formData } = employee;
+
+  function enqueuePersist(task: () => Promise<void>) {
+    persistChainRef.current = persistChainRef.current
+      .then(async () => {
+        if (persistFailedRef.current) return;
+        await task();
+      })
+      .catch((error) => {
+        persistFailedRef.current = true;
+        console.error("[onboarding] persist failed", error);
+      });
+  }
+
+  const ensureApplicationReady = useCallback(async () => {
+    const sessionOk = await sessionReadyRef.current.catch(() => false);
+    if (employeeRef.current.applicationRef) return true;
+    if (!registrationMode) return true;
+    return sessionOk && !persistFailedRef.current;
+  }, [registrationMode]);
 
   function mergeStepData(step: number, data: Record<string, unknown>) {
     setEmployee((prev) => {
@@ -104,123 +143,186 @@ export function OnboardingWizard({
   }
 
   const handleAutoSave = useCallback(
-    async (data: Record<string, unknown>) => {
-      if (isNewRegistration) return;
-      setIsSaving(true);
-      const result = await saveStepAction(currentStep, data, { validate: false });
-      if (result.success && result.data?.savedAt) {
-        setLastSavedAt(result.data.savedAt);
-        mergeStepData(currentStep, data);
-      }
-      setIsSaving(false);
+    (step: number, data: Record<string, unknown>) => {
+      if (registrationMode && !employeeRef.current.applicationRef) return;
+      enqueuePersist(async () => {
+        setIsSaving(true);
+        try {
+          const result = await saveStepAction(step, data, { validate: false });
+          if (result.success && result.data?.savedAt) {
+            setLastSavedAt(result.data.savedAt);
+            mergeStepData(step, data);
+          }
+        } finally {
+          setIsSaving(false);
+        }
+      });
     },
-    [currentStep, isNewRegistration]
+    [registrationMode]
   );
 
   const handleStepSubmit = useCallback(
-    async (data: Record<string, unknown>) => {
-      setIsSaving(true);
+    (data: Record<string, unknown>) => {
+      const step = currentStep;
+      if (advanceLockRef.current) return;
+      advanceLockRef.current = true;
+      window.setTimeout(() => {
+        advanceLockRef.current = false;
+      }, 400);
 
-      if (currentStep === 1 && isNewRegistration) {
-        const fullName =
-          (data as { personalDetails?: { fullName?: string } }).personalDetails?.fullName ?? "";
+      mergeStepData(step, data);
+      if (!completedSteps.includes(step)) {
+        setCompletedSteps((prev) => [...prev, step].sort((a, b) => a - b));
+      }
 
-        const result = await registerAndSaveStep1Action(
-          { fullName, email: contactEmail, phone: contactPhone },
-          data
-        );
+      const next = step < ONBOARDING_TOTAL_STEPS ? step + 1 : step;
+      if (next !== step) {
+        setCurrentStep(next);
+        scrollFormChromeIntoView();
+      }
 
-        if (!result.success) {
-          toast({
-            title: "Registration failed",
-            description: result.error,
-            variant: "destructive",
-          });
+      const needsRegister =
+        registrationMode && !employeeRef.current.applicationRef && step === 1;
+
+      if (needsRegister || employeeRef.current.applicationRef) {
+        persistFailedRef.current = false;
+      }
+
+      if (needsRegister && !sessionReadyResolveRef.current) {
+        sessionReadyRef.current = new Promise<boolean>((resolve) => {
+          sessionReadyResolveRef.current = resolve;
+        });
+      }
+
+      enqueuePersist(async () => {
+        setIsSaving(true);
+        try {
+          const shouldRegister =
+            registrationMode && !employeeRef.current.applicationRef && step === 1;
+
+          if (shouldRegister) {
+            try {
+              const fullName =
+                (data as { personalDetails?: { fullName?: string } }).personalDetails
+                  ?.fullName ?? "";
+
+              const result = await registerAndSaveStep1Action(
+                { fullName, email: contactEmail, phone: contactPhone },
+                data
+              );
+
+              if (!result.success) {
+                persistFailedRef.current = true;
+                sessionReadyResolveRef.current?.(false);
+                sessionReadyResolveRef.current = undefined;
+                toast({
+                  title: "Registration failed",
+                  description: result.error,
+                  variant: "destructive",
+                });
+                setCurrentStep(1);
+                return;
+              }
+
+              setEmployee((prev) => {
+                const nextEmployee = {
+                  ...prev,
+                  applicationRef: result.applicationRef,
+                  email: contactEmail,
+                  phone: contactPhone,
+                };
+                employeeRef.current = nextEmployee;
+                return nextEmployee;
+              });
+              setLastSavedAt(new Date().toISOString());
+              sessionReadyResolveRef.current?.(true);
+              sessionReadyResolveRef.current = undefined;
+            } catch (error) {
+              persistFailedRef.current = true;
+              sessionReadyResolveRef.current?.(false);
+              sessionReadyResolveRef.current = undefined;
+              throw error;
+            }
+          } else {
+            const result = await saveStepAction(step, data, {
+              validate: true,
+              markComplete: true,
+            });
+
+            if (!result.success) {
+              toast({
+                title: "Validation error",
+                description: result.error,
+                variant: "destructive",
+              });
+              setCurrentStep((current) => (current === next ? step : current));
+              return;
+            }
+
+            setLastSavedAt(result.data?.savedAt ?? null);
+          }
+
+          if (next !== step) {
+            void goToStepAction(next).catch(() => undefined);
+          }
+        } finally {
           setIsSaving(false);
-          return;
         }
-
-        toast({
-          title: "Registration started",
-          description: "Your application has been created. Continue with the next sections.",
-          variant: "success",
-        });
-
-        setEmployee((prev) => ({
-          ...prev,
-          applicationRef: result.applicationRef,
-          email: contactEmail,
-          phone: contactPhone,
-        }));
-        mergeStepData(1, data);
-
-        if (!completedSteps.includes(1)) {
-          setCompletedSteps((prev) => [...prev, 1].sort((a, b) => a - b));
-        }
-
-        const next = 2;
-        setCurrentStep(next);
-        router.refresh();
-        setIsSaving(false);
-        return;
-      }
-
-      const result = await saveStepAction(currentStep, data, {
-        validate: true,
-        markComplete: true,
       });
-
-      if (!result.success) {
-        toast({
-          title: "Validation error",
-          description: result.error,
-          variant: "destructive",
-        });
-        setIsSaving(false);
-        return;
-      }
-
-      setLastSavedAt(result.data?.savedAt ?? null);
-      mergeStepData(currentStep, data);
-      if (!completedSteps.includes(currentStep)) {
-        setCompletedSteps((prev) => [...prev, currentStep].sort((a, b) => a - b));
-      }
-
-      if (currentStep < ONBOARDING_TOTAL_STEPS) {
-        const next = currentStep + 1;
-        setCurrentStep(next);
-        void goToStepAction(next);
-      }
-
-      setIsSaving(false);
     },
-    [currentStep, completedSteps, toast, isNewRegistration, contactEmail, contactPhone, router]
+    [
+      currentStep,
+      completedSteps,
+      toast,
+      registrationMode,
+      contactEmail,
+      contactPhone,
+    ]
   );
 
-  async function handleFinalSubmit() {
+  function getSubmitBlockers(signatureDataUrl?: string): string | null {
     const requiredDocs = getRequiredDocuments({
       isExServiceman: Boolean(formData.exServiceman?.isExServiceman),
       isGunman: Boolean(formData.gunman?.isGunman),
     });
+    const liveSig = signatureDataUrl ?? formData.declaration?.signatureDataUrl;
     const hasLiveSig =
-      typeof formData.declaration?.signatureDataUrl === "string" &&
-      formData.declaration.signatureDataUrl.startsWith("data:image/");
+      typeof liveSig === "string" && liveSig.startsWith("data:image/");
     const missing = requiredDocs.filter((t) => {
       if (t === DocumentType.SIGNATURE && hasLiveSig) return false;
       return !documents.some((d) => d.documentType === t);
     });
 
     if (missing.length > 0) {
+      return `Please upload: ${missing.join(", ")}`;
+    }
+    if (documents.some((d) => d._id.startsWith("local-"))) {
+      return "Documents are still being saved. Try submit again in a moment.";
+    }
+    return null;
+  }
+
+  async function handleFinalSubmit() {
+    const blocker = getSubmitBlockers();
+    if (blocker) {
       toast({
-        title: "Documents required",
-        description: `Please upload: ${missing.join(", ")}`,
+        title: blocker.startsWith("Please upload") ? "Documents required" : "Please wait",
+        description: blocker,
         variant: "destructive",
       });
       setCurrentStep(6);
-      return;
+      return false;
     }
 
-    setIsSubmitting(true);
+    const ready = await ensureApplicationReady();
+    if (!ready) {
+      toast({
+        title: "Please wait",
+        description: "Your application is still being created. Try submit again in a moment.",
+        variant: "destructive",
+      });
+      return false;
+    }
 
     const submitResult = await submitApplicationAction();
 
@@ -232,45 +334,98 @@ export function OnboardingWizard({
           variant: "success",
         });
         window.location.assign(`/dashboard/l1/applications/${employee._id}`);
-        return;
+        return true;
       }
-      setIsSubmitted(true);
       if (!submitterMode) {
         toast({
           title: "Application submitted",
           description: "Your employment form has been submitted successfully.",
           variant: "success",
         });
+        router.refresh();
       }
-      router.refresh();
-    } else {
-      toast({ title: "Submission failed", description: submitResult.error, variant: "destructive" });
+      return true;
     }
 
-    setIsSubmitting(false);
+    toast({ title: "Submission failed", description: submitResult.error, variant: "destructive" });
+    return false;
   }
 
-  async function handleDeclarationSubmit(data: Record<string, unknown>) {
-    setIsSaving(true);
-    const result = await saveStepAction(7, data, { validate: true, markComplete: true });
+  function handleDeclarationSubmit(data: Record<string, unknown>) {
+    if (advanceLockRef.current) return;
+    advanceLockRef.current = true;
 
-    if (!result.success) {
-      toast({
-        title: "Validation error",
-        description: result.error,
-        variant: "destructive",
-      });
-      setIsSaving(false);
-      return;
-    }
-
+    mergeStepData(7, data);
     if (!completedSteps.includes(7)) {
       setCompletedSteps((prev) => [...prev, 7].sort((a, b) => a - b));
     }
-    mergeStepData(7, data);
 
-    setIsSaving(false);
-    await handleFinalSubmit();
+    const signatureDataUrl = (data as { declaration?: { signatureDataUrl?: string } })
+      .declaration?.signatureDataUrl;
+    const blocker = getSubmitBlockers(signatureDataUrl);
+    if (blocker) {
+      advanceLockRef.current = false;
+      toast({
+        title: blocker.startsWith("Please upload") ? "Documents required" : "Please wait",
+        description: blocker,
+        variant: "destructive",
+      });
+      setCurrentStep(6);
+      return;
+    }
+
+    if (l1EditMode) {
+      void (async () => {
+        await persistChainRef.current;
+        const save = await saveStepAction(7, data, { validate: true, markComplete: true });
+        if (!save.success) {
+          advanceLockRef.current = false;
+          toast({
+            title: "Validation error",
+            description: save.error,
+            variant: "destructive",
+          });
+          return;
+        }
+        const ok = await handleFinalSubmit();
+        if (!ok) advanceLockRef.current = false;
+      })();
+      return;
+    }
+
+    setIsSubmitted(true);
+
+    void (async () => {
+      await persistChainRef.current;
+      if (persistFailedRef.current) {
+        setIsSubmitted(false);
+        advanceLockRef.current = false;
+        toast({
+          title: "Could not save earlier steps",
+          description: "Please go back, check the form, and tap Save & Continue again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const save = await saveStepAction(7, data, { validate: true, markComplete: true });
+      if (!save.success) {
+        setIsSubmitted(false);
+        advanceLockRef.current = false;
+        toast({
+          title: "Validation error",
+          description: save.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const ok = await handleFinalSubmit();
+      if (!ok) {
+        setIsSubmitted(false);
+        advanceLockRef.current = false;
+      }
+    })();
   }
 
   function handleNext() {
@@ -283,7 +438,10 @@ export function OnboardingWizard({
     if (currentStep === 6) {
       const next = 7;
       setCurrentStep(next);
-      void goToStepAction(next);
+      scrollFormChromeIntoView();
+      void ensureApplicationReady().then((ok) => {
+        if (ok) void goToStepAction(next).catch(() => undefined);
+      });
       if (!completedSteps.includes(6)) {
         setCompletedSteps((prev) => [...prev, 6].sort((a, b) => a - b));
       }
@@ -298,16 +456,18 @@ export function OnboardingWizard({
     if (currentStep <= 1) return;
     const prev = currentStep - 1;
     setCurrentStep(prev);
+    scrollFormChromeIntoView();
     if (!isNewRegistration) {
-      void goToStepAction(prev);
+      void goToStepAction(prev).catch(() => undefined);
     }
   }
 
   function handleStepClick(step: number) {
     if (step === currentStep) return;
     setCurrentStep(step);
+    scrollFormChromeIntoView();
     if (!isNewRegistration) {
-      void goToStepAction(step);
+      void goToStepAction(step).catch(() => undefined);
     }
   }
 
@@ -330,15 +490,25 @@ export function OnboardingWizard({
   }
 
   return (
-    <div className="flex flex-col">
-      <FormStepNav
-        currentStep={currentStep}
-        completedSteps={completedSteps}
-        onStepClick={handleStepClick}
-      />
+    <div className="dashboard-form-panel flex flex-col">
+      <div
+        id="onboarding-form-chrome"
+        className="sticky top-0 z-30 rounded-t-2xl border-b border-[#E2E8F0] bg-white px-4 py-3 shadow-[0_8px_20px_-8px_rgba(15,23,42,0.18)] sm:px-6"
+      >
+        <FormStepNav
+          currentStep={currentStep}
+          completedSteps={completedSteps}
+          onStepClick={handleStepClick}
+          trailing={
+            currentStep !== 6 && !isNewRegistration ? (
+              <AutoSaveIndicator isSaving={isSaving} lastSavedAt={lastSavedAt} />
+            ) : null
+          }
+        />
+      </div>
 
       <div className="flex flex-col">
-        <div className="py-4 sm:py-6">
+        <div className="px-4 py-4 sm:px-6 sm:py-6">
           {employee.correctionNotes && (
             <div className="mb-6 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
               <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
@@ -354,16 +524,7 @@ export function OnboardingWizard({
             </div>
           )}
 
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="font-heading text-lg font-bold text-[#1E3A8A] sm:text-xl">
-              {stepMeta?.label}
-            </h2>
-            {currentStep !== 6 && !isNewRegistration && (
-              <AutoSaveIndicator isSaving={isSaving} lastSavedAt={lastSavedAt} />
-            )}
-          </div>
-
-          <div className="rounded-xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-6">
+          <div className="pb-8">
             {currentStep === 1 && (
               <ApplicantFormStep
                 defaultValues={formData}
@@ -376,7 +537,7 @@ export function OnboardingWizard({
                 }}
                 formId={formId}
                 onSubmit={handleStepSubmit}
-                onAutoSave={handleAutoSave}
+                onAutoSave={(data) => void handleAutoSave(1, data)}
               />
             )}
             {currentStep === 2 && (
@@ -384,7 +545,7 @@ export function OnboardingWizard({
                 defaultValues={formData}
                 formId={formId}
                 onSubmit={handleStepSubmit}
-                onAutoSave={handleAutoSave}
+                onAutoSave={(data) => void handleAutoSave(2, data)}
               />
             )}
             {currentStep === 3 && (
@@ -392,7 +553,7 @@ export function OnboardingWizard({
                 defaultValues={formData}
                 formId={formId}
                 onSubmit={handleStepSubmit}
-                onAutoSave={handleAutoSave}
+                onAutoSave={(data) => void handleAutoSave(3, data)}
               />
             )}
             {currentStep === 4 && (
@@ -400,7 +561,7 @@ export function OnboardingWizard({
                 defaultValues={formData}
                 formId={formId}
                 onSubmit={handleStepSubmit}
-                onAutoSave={handleAutoSave}
+                onAutoSave={(data) => void handleAutoSave(4, data)}
               />
             )}
             {currentStep === 5 && (
@@ -408,7 +569,7 @@ export function OnboardingWizard({
                 defaultValues={formData}
                 formId={formId}
                 onSubmit={handleStepSubmit}
-                onAutoSave={handleAutoSave}
+                onAutoSave={(data) => void handleAutoSave(5, data)}
               />
             )}
             {currentStep === 6 && (
@@ -417,6 +578,7 @@ export function OnboardingWizard({
                 onDocumentsChange={setDocuments}
                 isExServiceman={Boolean(formData.exServiceman?.isExServiceman)}
                 isGunman={Boolean(formData.gunman?.isGunman)}
+                ensureApplicationReady={ensureApplicationReady}
               />
             )}
             {currentStep === 7 && (
@@ -424,25 +586,25 @@ export function OnboardingWizard({
                 defaultValues={formData.declaration}
                 formId={formId}
                 onSubmit={handleDeclarationSubmit}
-                onAutoSave={handleAutoSave}
+                onAutoSave={(data) => void handleAutoSave(7, data)}
               />
             )}
           </div>
         </div>
 
-        <div className="sticky bottom-0 flex items-center justify-between gap-4 border-t border-[#E2E8F0] bg-white py-4">
+        <div className="sticky bottom-0 z-20 flex items-center justify-between gap-4 border-t border-[#E2E8F0] bg-white px-4 py-4 shadow-[0_-8px_16px_-12px_rgba(15,23,42,0.2)] sm:px-6">
           <Button
             type="button"
             variant="outline"
             onClick={handleBack}
-            disabled={currentStep === 1 || isSaving || isSubmitting}
+            disabled={currentStep === 1 || isSubmitting}
           >
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
 
           {currentStep < ONBOARDING_TOTAL_STEPS ? (
-            <Button type="button" onClick={handleNext} isLoading={isSaving} disabled={isSubmitting}>
+            <Button type="button" onClick={handleNext} disabled={isSubmitting}>
               Save & Continue
               <ArrowRight className="h-4 w-4" />
             </Button>
@@ -465,7 +627,6 @@ export function OnboardingWizard({
               <Button
                 type="button"
                 onClick={handleNext}
-                isLoading={isSubmitting || isSaving}
                 className="bg-gradient-to-r from-[#1D4ED8] to-[#2563EB]"
               >
                 <Send className="h-4 w-4" />

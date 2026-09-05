@@ -14,6 +14,10 @@ import { EmployeeDocumentsFolderPanel } from "@/features/documents/components/Em
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonCard } from "@/components/ui/skeleton";
+import {
+  peekEmployeeFoldersCache,
+  prefetchEmployeeFolders,
+} from "@/features/documents/lib/folders-cache";
 
 interface MasterFolderItem {
   employeeId: string;
@@ -54,26 +58,23 @@ async function downloadEmployeeFolderZip(employeeId: string, folderName: string)
 }
 
 export function EmployeeDocumentsBrowser() {
-  const [data, setData] = useState<ListPayload | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<ListPayload | null>(() => peekEmployeeFoldersCache());
+  const [loading, setLoading] = useState(() => !peekEmployeeFoldersCache());
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   const [zipLoadingId, setZipLoadingId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (force = false) => {
+    const cached = peekEmployeeFoldersCache();
+    if (!cached) setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/employee-documents-folder");
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || "Unable to load Employee Documents");
-      }
-      const json = (await res.json()) as ListPayload;
+      const json = await prefetchEmployeeFolders(force);
       setData(json);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load folders");
-      setData(null);
+      if (!cached) setData(null);
     } finally {
       setLoading(false);
     }
@@ -98,13 +99,45 @@ export function EmployeeDocumentsBrowser() {
 
   const selected = data?.folders.find((f) => f.employeeId === selectedId);
   const canDownloadFolder = Boolean(data?.canDownloadFolder);
+  const q = search.trim().toLowerCase();
+  const folders = (data?.folders ?? []).filter((folder) => {
+    if (!q) return true;
+    return [
+      folder.employeeName,
+      folder.folderName,
+      folder.temporaryEmployeeId,
+      folder.applicationRef,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .includes(q);
+  });
 
   if (loading && !data) {
     return (
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <SkeletonCard />
-        <SkeletonCard />
-        <SkeletonCard />
+      <div className="space-y-4">
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+          <div className="flex items-start gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#1D4ED8]">
+              <FolderOpen className="h-5 w-5" />
+            </span>
+            <div>
+              <h3 className="font-heading text-lg font-semibold text-primary">
+                Employee Documents
+              </h3>
+              <p className="mt-1 text-sm text-[#64748B]">
+                Folders are created after L2 approval. Open a folder to view files, or download as
+                ZIP.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
       </div>
     );
   }
@@ -116,7 +149,7 @@ export function EmployeeDocumentsBrowser() {
         description={error}
         icon={FileStack}
         action={
-          <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
+          <Button type="button" variant="outline" size="sm" onClick={() => void load(true)}>
             Try again
           </Button>
         }
@@ -131,10 +164,10 @@ export function EmployeeDocumentsBrowser() {
           <button
             type="button"
             onClick={() => setSelectedId(null)}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 font-medium text-[#1D4ED8] transition hover:bg-[#EFF6FF]"
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#E2E8F0] bg-white px-3 font-semibold text-[#1D4ED8] shadow-sm transition hover:bg-[#EFF6FF]"
           >
             <ArrowLeft className="h-4 w-4" />
-            {data?.masterFolder ?? "Employee Documents"}
+            Back
           </button>
           <ChevronRight className="h-4 w-4" />
           <span className="font-medium text-primary">{selected.folderName}</span>
@@ -170,11 +203,22 @@ export function EmployeeDocumentsBrowser() {
               </p>
             </div>
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
+          <Button type="button" variant="outline" size="sm" onClick={() => void load(true)}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Refresh
           </Button>
         </div>
+        {(data?.folders.length ?? 0) > 0 && (
+          <div className="relative mt-4">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search employee name or ID"
+              className="h-10 w-full rounded-xl border border-[#E2E8F0] bg-white px-3.5 text-sm"
+              aria-label="Search employee folders"
+            />
+          </div>
+        )}
       </div>
 
       {error && (
@@ -189,23 +233,32 @@ export function EmployeeDocumentsBrowser() {
           description="Folders appear here after L2 approval and temporary employee ID generation."
           icon={Folder}
         />
+      ) : !folders.length ? (
+        <EmptyState
+          title="No matching folders"
+          description="Try a different name or employee ID."
+          icon={Folder}
+        />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {data.folders.map((folder) => (
+          {folders.map((folder) => (
             <article
               key={folder.employeeId}
-              className="group flex flex-col rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md"
+              className="flex flex-col rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
             >
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#1D4ED8]">
                   <Folder className="h-5 w-5" />
                 </span>
                 <div className="min-w-0">
-                  <h4 className="truncate font-semibold text-primary">{folder.folderName}</h4>
-                  <p className="mt-0.5 truncate text-xs text-[#64748B]">{folder.folderPath}</p>
-                  <p className="mt-2 text-xs text-[#94A3B8]">
-                    {folder.documentCount} document
-                    {folder.documentCount === 1 ? "" : "s"}
+                  <h4 className="truncate font-heading font-semibold text-primary">
+                    {folder.employeeName || folder.folderName}
+                  </h4>
+                  <p className="mt-1 font-mono text-xs text-[#334155]">
+                    ID: {folder.temporaryEmployeeId || "—"}
+                  </p>
+                  <p className="mt-1 text-xs text-[#64748B]">
+                    {folder.documentCount} document{folder.documentCount === 1 ? "" : "s"}
                     {folder.applicationRef ? ` · ${folder.applicationRef}` : ""}
                   </p>
                 </div>
@@ -230,7 +283,7 @@ export function EmployeeDocumentsBrowser() {
                     onClick={() => void handleDownloadFolder(folder)}
                   >
                     <Download className="h-4 w-4" />
-                    Download
+                    Download Folder
                   </Button>
                 )}
               </div>

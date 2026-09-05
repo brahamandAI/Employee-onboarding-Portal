@@ -69,8 +69,10 @@ export async function generateTemporaryEmployeeId(
     { new: true }
   );
 
-  const sequence = (counter?.value as { sequence: number }).sequence;
-  if (sequence == null || sequence < 1) {
+  const sequence = Number(
+    (counter?.value as { sequence?: number } | undefined)?.sequence
+  );
+  if (!Number.isFinite(sequence) || sequence < 1) {
     throw new EmployeeIdError(
       "Failed to allocate temporary employee number",
       "COUNTER_ERROR"

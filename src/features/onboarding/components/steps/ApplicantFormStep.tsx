@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ import { BLOOD_GROUPS, QUALIFICATIONS } from "@/features/onboarding/constants";
 import { useAutoSave } from "@/features/onboarding/components/AutoSaveIndicator";
 import { FormSection } from "@/features/onboarding/components/FormSection";
 import { EmployeeFormData } from "@/features/onboarding/types";
+import { applySchema } from "@/features/registration/schemas/apply.schema";
 
 interface StepProps {
   defaultValues: EmployeeFormData;
@@ -121,6 +123,7 @@ export function ApplicantFormStep({
   onSubmit,
   onAutoSave,
 }: StepProps) {
+  const [contactErrors, setContactErrors] = useState<{ email?: string; phone?: string }>({});
   const {
     register,
     handleSubmit,
@@ -135,8 +138,28 @@ export function ApplicantFormStep({
   useAutoSave(watch(), onAutoSave);
   const sameAsPresent = watch("address.sameAsPresent");
 
+  function submitStep(data: ApplicantFormInput) {
+    if (registrationMode) {
+      const parsed = applySchema.safeParse({
+        fullName: data.personalDetails.fullName,
+        email,
+        phone,
+      });
+      if (!parsed.success) {
+        const fieldErrors = parsed.error.flatten().fieldErrors;
+        setContactErrors({
+          email: fieldErrors.email?.[0],
+          phone: fieldErrors.phone?.[0],
+        });
+        return;
+      }
+    }
+    setContactErrors({});
+    onSubmit(data);
+  }
+
   return (
-    <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form id={formId} onSubmit={handleSubmit(submitStep)} className="space-y-6">
       <FormSection
         sectionNumber={1}
         title="For Applicant"
@@ -184,9 +207,13 @@ export function ApplicantFormStep({
             {registrationMode ? (
               <Input
                 value={phone}
-                onChange={(e) => onContactChange?.("phone", e.target.value)}
+                onChange={(e) => {
+                  setContactErrors((prev) => ({ ...prev, phone: undefined }));
+                  onContactChange?.("phone", e.target.value.replace(/\D/g, "").slice(0, 10));
+                }}
                 maxLength={10}
                 placeholder="10-digit mobile number"
+                error={contactErrors.phone}
               />
             ) : (
               <Input value={phone} disabled className="bg-[#F8FAFC]" />
@@ -248,8 +275,12 @@ export function ApplicantFormStep({
               <Input
                 type="email"
                 value={email}
-                onChange={(e) => onContactChange?.("email", e.target.value)}
+                onChange={(e) => {
+                  setContactErrors((prev) => ({ ...prev, email: undefined }));
+                  onContactChange?.("email", e.target.value);
+                }}
                 placeholder="your.email@example.com"
+                error={contactErrors.email}
               />
             ) : (
               <Input value={email} disabled className="bg-[#F8FAFC]" />
@@ -304,7 +335,18 @@ export function ApplicantFormStep({
           </div>
           <div className="space-y-2">
             <Label>PAN Card No.</Label>
-            <Input {...register("personalDetails.panNumber")} className="uppercase" error={errors.personalDetails?.panNumber?.message} />
+            <Input
+              {...register("personalDetails.panNumber")}
+              className="uppercase"
+              onChange={(e) =>
+                setValue(
+                  "personalDetails.panNumber",
+                  e.target.value.toUpperCase().replace(/\s/g, ""),
+                  { shouldValidate: true }
+                )
+              }
+              error={errors.personalDetails?.panNumber?.message}
+            />
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label required>Educational Qualification</Label>
@@ -356,7 +398,18 @@ export function ApplicantFormStep({
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label required>IFSC Code</Label>
-            <Input {...register("additionalDetails.ifscCode")} className="uppercase" error={errors.additionalDetails?.ifscCode?.message} />
+            <Input
+              {...register("additionalDetails.ifscCode")}
+              className="uppercase"
+              onChange={(e) =>
+                setValue(
+                  "additionalDetails.ifscCode",
+                  e.target.value.toUpperCase().replace(/\s/g, ""),
+                  { shouldValidate: true }
+                )
+              }
+              error={errors.additionalDetails?.ifscCode?.message}
+            />
           </div>
         </div>
       </FormSection>

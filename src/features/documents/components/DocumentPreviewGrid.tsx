@@ -6,7 +6,6 @@ import {
   Eye,
   FileText,
   Image as ImageIcon,
-  Loader2,
   ExternalLink,
   X,
 } from "lucide-react";
@@ -19,6 +18,8 @@ export interface PreviewDocument {
   fileName: string;
   mimeType: string;
   sizeBytes?: number;
+  /** Direct Cloudinary URL used for instant image previews */
+  url?: string;
 }
 
 interface DocumentPreviewGridProps {
@@ -220,7 +221,7 @@ export function DocumentPreviewGrid({
             </div>
 
             <div className="min-h-0 flex-1 overflow-auto bg-[#F1F5F9] p-3">
-              <DocumentPreviewBody doc={active} />
+              <DocumentPreviewBody key={active._id} doc={active} />
             </div>
           </div>
         </div>
@@ -230,19 +231,13 @@ export function DocumentPreviewGrid({
 }
 
 function DocumentPreviewBody({ doc }: { doc: PreviewDocument }) {
-  const [loaded, setLoaded] = useState(false);
+  const proxySrc = fileUrl(doc._id, "inline");
+  const [src, setSrc] = useState(doc.url || proxySrc);
   const [failed, setFailed] = useState(false);
-  const src = fileUrl(doc._id, "inline");
 
   if (isImage(doc.mimeType)) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        {!loaded && !failed && (
-          <span className="flex items-center gap-2 text-sm text-[#64748B]">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading preview…
-          </span>
-        )}
         {failed ? (
           <PreviewFallback doc={doc} />
         ) : (
@@ -250,11 +245,16 @@ function DocumentPreviewBody({ doc }: { doc: PreviewDocument }) {
           <img
             src={src}
             alt={doc.label}
-            onLoad={() => setLoaded(true)}
-            onError={() => setFailed(true)}
-            className={`mx-auto max-h-[72vh] w-auto rounded-lg bg-white object-contain shadow-sm ${
-              loaded ? "block" : "hidden"
-            }`}
+            decoding="async"
+            fetchPriority="high"
+            onError={() => {
+              if (src !== proxySrc) {
+                setSrc(proxySrc);
+                return;
+              }
+              setFailed(true);
+            }}
+            className="mx-auto max-h-[72vh] w-auto rounded-lg bg-white object-contain shadow-sm"
           />
         )}
       </div>
@@ -264,7 +264,7 @@ function DocumentPreviewBody({ doc }: { doc: PreviewDocument }) {
   if (isPdf(doc.mimeType)) {
     return (
       <iframe
-        src={src}
+        src={proxySrc}
         title={`${doc.label} preview`}
         className="h-[72vh] w-full rounded-lg border-0 bg-white"
       />

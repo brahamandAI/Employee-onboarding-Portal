@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApprovalStatusTimeline } from "@/features/submitter/components/ApprovalStatusTimeline";
 import type { ApprovalTimelineItem } from "@/features/submitter/components/ApprovalStatusTimeline";
 import { EmployeeDocumentsFolderPanel } from "@/features/documents/components/EmployeeDocumentsFolderPanel";
+import { StatusBadge } from "@/features/l1/components/StatusBadge";
+import { EmployeeStatus } from "@/types/enums";
+import { FileText } from "lucide-react";
 
 interface RegistrationDetailReadOnlyProps {
   employeeId?: string;
@@ -32,7 +35,7 @@ interface RegistrationDetailReadOnlyProps {
 function Grid({ title, data }: { title: string; data?: Record<string, unknown> }) {
   if (!data || Object.keys(data).length === 0) return null;
   return (
-    <Card className="ui-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+    <Card>
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
@@ -69,49 +72,55 @@ export function RegistrationDetailReadOnly({
         <EmployeeDocumentsFolderPanel employeeId={employeeId} />
       )}
 
-      <Card className="ui-card">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Registration Summary</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
+        <CardContent className="space-y-3 text-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge
+              status={
+                (Object.values(EmployeeStatus) as string[]).includes(employee.status)
+                  ? (employee.status as EmployeeStatus)
+                  : EmployeeStatus.SUBMITTED
+              }
+            />
+            {employee.temporaryEmployeeId && (
+              <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-mono text-xs font-semibold text-emerald-800">
+                Temp ID: {employee.temporaryEmployeeId}
+              </span>
+            )}
+          </div>
           <p>
-            <span className="font-medium">Application Ref:</span> {employee.applicationRef}
+            <span className="font-medium text-[#64748B]">Application Ref:</span>{" "}
+            <span className="font-semibold text-primary">{employee.applicationRef}</span>
           </p>
-          <p>
-            <span className="font-medium">Status:</span> {employee.status.replace(/_/g, " ")}
-          </p>
-          {employee.temporaryEmployeeId && (
-            <p>
-              <span className="font-medium">Temporary Employee ID:</span>{" "}
-              {employee.temporaryEmployeeId}
-            </p>
-          )}
           {employee.rejectionReason && (
-            <p className="text-red-700">
+            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-800">
               <span className="font-medium">Rejection Comment:</span> {employee.rejectionReason}
             </p>
           )}
           {employee.correctionNotes && (
-            <p className="text-amber-700">
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
               <span className="font-medium">Reverse Note:</span> {employee.correctionNotes}
             </p>
           )}
         </CardContent>
       </Card>
 
-      <Grid title="Personal Details" data={employee.personalDetails} />
+      <Grid title="Employee Information" data={employee.personalDetails} />
       <Grid title="Address" data={employee.address} />
       <Grid
         title="Education"
         data={(employee.education as Record<string, unknown>) ?? {}}
       />
-      <Grid title="Nominee Details" data={employee.nominee} />
-      <Grid title="Additional Details" data={employee.additionalDetails} />
+      <Grid title="Nominee Information" data={employee.nominee} />
+      <Grid title="Bank & Additional Information" data={employee.additionalDetails} />
       <Grid title="Ex-Serviceman Details" data={employee.exServiceman} />
       <Grid title="Gunman Details" data={employee.gunman} />
 
       {employee.references && employee.references.length > 0 && (
-        <Card className="ui-card">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">References</CardTitle>
           </CardHeader>
@@ -133,9 +142,9 @@ export function RegistrationDetailReadOnly({
       )}
 
       {employee.familyDetails && employee.familyDetails.length > 0 && (
-        <Card className="ui-card">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-base">Family Details</CardTitle>
+            <CardTitle className="text-base">Family Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {employee.familyDetails.map((member, i) => (
@@ -154,9 +163,12 @@ export function RegistrationDetailReadOnly({
         </Card>
       )}
 
-      <Card className="ui-card">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base">Uploaded Documents</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileText className="h-4 w-4 text-[#1D4ED8]" />
+            Documents
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -166,13 +178,13 @@ export function RegistrationDetailReadOnly({
                 href={doc.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-primary transition hover:-translate-y-0.5 hover:bg-[#F8FAFC] hover:shadow-sm"
+                className="block rounded-xl border border-[#E2E8F0] px-3 py-2.5 text-sm font-medium text-primary transition hover:bg-[#F8FAFC]"
               >
                 {doc.documentType}: {doc.fileName}
               </a>
             ))}
             {documents.length === 0 && (
-              <p className="text-sm text-[#64748B]">No documents uploaded.</p>
+              <p className="text-sm text-[#64748B]">No documents available.</p>
             )}
           </div>
         </CardContent>

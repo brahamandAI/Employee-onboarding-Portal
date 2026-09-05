@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState, type ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/features/l1/components/StatusBadge";
 import { L2ActionPanel } from "@/features/l2/components/L2ActionPanel";
@@ -30,7 +33,7 @@ interface HistoryItem {
   fromStatus: string;
   toStatus: string;
   comment?: string;
-  createdAt: Date;
+  createdAt: string | Date;
   performedBy?: { name?: string };
 }
 
@@ -55,21 +58,22 @@ interface EmployeeDetailViewProps {
     l1Decision?: {
       action: string;
       comment?: string;
-      decidedAt?: Date;
+      approvedByName?: string;
+      decidedAt?: string;
       decidedBy?: { name?: string; email?: string } | null;
     };
     l2Decision?: {
-      action: "APPROVE" | "REJECT" | "RETURN" | "RETURN_TO_L1" | "FORWARD";
+      action: string;
       comment?: string;
-      decidedAt?: Date;
+      decidedAt?: string;
       decidedBy?: { name?: string; email?: string } | null;
     };
-    submittedAt?: Date;
+    submittedAt?: string;
     submittedBy?: { name?: string; email?: string } | null;
     correctionNotes?: string;
     rejectionReason?: string;
-    forwardedToSupportAt?: Date;
-    forwardedToAdminAt?: Date;
+    forwardedToSupportAt?: string;
+    forwardedToAdminAt?: string;
     pendingFieldChanges?: Array<{
       path: string;
       label: string;
@@ -92,14 +96,16 @@ function DetailSection({
   children,
   icon: Icon,
   className,
+  id,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
   icon?: LucideIcon;
   className?: string;
+  id?: string;
 }) {
   return (
-    <Card className={cn("overflow-hidden", className)}>
+    <Card id={id} className={cn("scroll-mt-24 overflow-hidden", className)}>
       <CardHeader className="bg-gradient-to-r from-[#F8FAFC] to-white">
         <CardTitle className="flex items-center gap-2 text-base">
           {Icon && (
@@ -151,6 +157,15 @@ export function EmployeeDetailView({
 }: EmployeeDetailViewProps) {
   const personal = employee.personalDetails ?? {};
   const fullName = (personal.fullName as string) ?? "Unknown";
+  const [status, setStatus] = useState(employee.status);
+
+  useEffect(() => {
+    setStatus(employee.status);
+  }, [employee.status]);
+
+  function jumpTo(id: string) {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   return (
     <div className="space-y-6">
@@ -165,7 +180,7 @@ export function EmployeeDetailView({
             </h2>
             <p className="mt-1 text-sm text-[#64748B]">{employee.applicationRef}</p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <StatusBadge status={employee.status} />
+              <StatusBadge status={status} />
               <LiveBadge />
               {employee.temporaryEmployeeId && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-800">
@@ -178,6 +193,21 @@ export function EmployeeDetailView({
                   ID: {employee.employeeId}
                 </span>
               )}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {[
+                { id: "l2-documents", label: "Documents" },
+                { id: "l2-review", label: "Review" },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => jumpTo(item.id)}
+                  className="rounded-full border border-[#E2E8F0] bg-white px-3 py-1 text-xs font-medium text-[#334155] transition hover:border-[#BFDBFE] hover:bg-[#EFF6FF] hover:text-[#1D4ED8]"
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -214,9 +244,9 @@ export function EmployeeDetailView({
               : "L1 Decision"}
           </p>
           <p className="mt-1 text-sm text-emerald-700">
-            {employee.l1Decision.decidedBy?.name
-              ? employee.l1Decision.decidedBy.name
-              : employee.l1Decision.action}
+            {employee.l1Decision.approvedByName ||
+              employee.l1Decision.decidedBy?.name ||
+              employee.l1Decision.action}
             {employee.l1Decision.decidedAt
               ? ` — ${new Date(employee.l1Decision.decidedAt).toLocaleString("en-IN")}`
               : ""}
@@ -227,7 +257,7 @@ export function EmployeeDetailView({
 
       <div className="grid gap-6 lg:grid-cols-3">
         <DetailSection title="Approval Timeline" icon={History} className="lg:col-span-1">
-          <ApprovalTimeline status={employee.status} />
+          <ApprovalTimeline status={status} />
         </DetailSection>
         <div className="grid gap-6 lg:col-span-2 lg:grid-cols-2">
         <DetailSection title="Contact" icon={Contact}>
@@ -314,6 +344,7 @@ export function EmployeeDetailView({
       )}
 
       <DetailSection
+        id="l2-documents"
         title={`Uploaded Documents${documents.length > 0 ? ` (${documents.length})` : ""}`}
         icon={FileText}
       >
@@ -324,15 +355,15 @@ export function EmployeeDetailView({
       </DetailSection>
 
       {(employee.temporaryEmployeeId ||
-        employee.status === EmployeeStatus.L2_REVIEW ||
+        status === EmployeeStatus.L2_REVIEW ||
         [
           EmployeeStatus.APPROVED,
           EmployeeStatus.ID_GENERATED,
           EmployeeStatus.ID_CARD_ISSUED,
-        ].includes(employee.status)) && (
+        ].includes(status)) && (
         <EmployeeDocumentsFolderPanel
           employeeId={employee._id}
-          showWhenEmpty={employee.status === EmployeeStatus.L2_REVIEW}
+          showWhenEmpty={status === EmployeeStatus.L2_REVIEW}
         />
       )}
 
@@ -365,7 +396,10 @@ export function EmployeeDetailView({
         </DetailSection>
       )}
 
-      <section className="mt-2 space-y-3 rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:p-6">
+      <section
+        id="l2-review"
+        className="mt-2 scroll-mt-24 space-y-3 rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:p-6"
+      >
         <div>
           <h3 className="font-heading text-lg font-semibold text-primary">
             Review Decision
@@ -376,12 +410,13 @@ export function EmployeeDetailView({
         </div>
         <L2ActionPanel
           employeeId={employee._id}
-          status={employee.status}
+          status={status}
           employeeIdCode={employee.temporaryEmployeeId ?? employee.employeeId}
           l1DecisionAction={employee.l1Decision?.action}
           l2DecisionAction={employee.l2Decision?.action}
-          forwardedToSupportAt={employee.forwardedToSupportAt?.toISOString()}
-          forwardedToAdminAt={employee.forwardedToAdminAt?.toISOString()}
+          forwardedToSupportAt={employee.forwardedToSupportAt}
+          forwardedToAdminAt={employee.forwardedToAdminAt}
+          onStatusChange={setStatus}
         />
       </section>
     </div>

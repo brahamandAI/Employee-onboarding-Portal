@@ -3,6 +3,7 @@ import { Employee } from "@/lib/db/models/Employee";
 import { EmployeeStatus } from "@/types/enums";
 import { ApplicationListItem } from "@/lib/services/l1.service";
 import { L2_PENDING_FILTER } from "@/lib/services/approval-queue";
+import { toClientProps } from "@/lib/serialize/client-props";
 
 function mapEmployee(emp: Record<string, unknown>): ApplicationListItem {
   const personal = emp.personalDetails as {
@@ -11,9 +12,9 @@ function mapEmployee(emp: Record<string, unknown>): ApplicationListItem {
   } | undefined;
   const submittedBy = emp.submittedBy as { name?: string } | null | undefined;
   const l1Decision = emp.l1Decision as
-    | { decidedBy?: { name?: string } | null }
+    | { decidedBy?: { name?: string } | null; approvedByName?: string }
     | undefined;
-  return {
+  return toClientProps({
     _id: String(emp._id),
     applicationRef: String(emp.applicationRef),
     fullName: personal?.fullName ?? "Unknown",
@@ -32,8 +33,8 @@ function mapEmployee(emp: Record<string, unknown>): ApplicationListItem {
       submittedBy && typeof submittedBy === "object" && submittedBy.name
         ? submittedBy.name
         : undefined,
-    l1ApprovedByName: l1Decision?.decidedBy?.name,
-  };
+    l1ApprovedByName: l1Decision?.approvedByName || l1Decision?.decidedBy?.name,
+  });
 }
 
 /**

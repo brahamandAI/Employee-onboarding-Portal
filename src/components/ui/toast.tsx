@@ -55,12 +55,12 @@ export function Toaster() {
   const { toasts, dismiss } = context;
 
   return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+    <div className="fixed bottom-4 left-4 right-4 z-50 flex flex-col gap-2 sm:bottom-auto sm:left-auto sm:right-4 sm:top-4 sm:w-auto">
       {toasts.map((t) => (
         <div
           key={t.id}
           className={cn(
-            "w-80 rounded-lg border p-4 shadow-lg",
+            "w-full rounded-xl border p-4 shadow-lg sm:w-80",
             t.variant === "destructive" && "border-red-200 bg-red-50",
             t.variant === "success" && "border-green-200 bg-green-50",
             t.variant === "default" && "border-[#E2E8F0] bg-white"

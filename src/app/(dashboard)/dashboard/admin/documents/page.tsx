@@ -11,7 +11,7 @@ export default async function AdminEmployeeDocumentsPage() {
 
   return (
     <div className="space-y-6">
-      <DashboardBackLink href="/dashboard/admin" label="Back to dashboard" />
+      <DashboardBackLink href="/dashboard/admin" />
       <DashboardPageHeader
         title="Employee Documents"
         description="Main folder containing every employee folder created after L2 approval."

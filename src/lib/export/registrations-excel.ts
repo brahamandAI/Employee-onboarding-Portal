@@ -84,6 +84,7 @@ export type RegistrationExportSource = {
   l1Decision?: {
     action?: string;
     comment?: string;
+    approvedByName?: string;
     decidedAt?: Date | string;
     decidedBy?: { name?: string } | null;
   };
@@ -140,7 +141,7 @@ const COLUMNS: Col[] = [
   { key: "submittedByEmail", header: "Submitter Email", get: (r) => r.submittedBy?.email },
   { key: "submittedAt", header: "Submitted At", get: (r) => r.submittedAt },
   { key: "l1Action", header: "L1 Action", get: (r) => r.l1Decision?.action },
-  { key: "l1ApprovedBy", header: "L1 Approved By", get: (r) => r.l1Decision?.decidedBy?.name },
+  { key: "l1ApprovedBy", header: "L1 Approved By", get: (r) => r.l1Decision?.approvedByName || r.l1Decision?.decidedBy?.name },
   { key: "l1ApprovedAt", header: "L1 Approved At", get: (r) => r.l1ApprovedAt ?? r.l1Decision?.decidedAt },
   { key: "l1Comment", header: "L1 Comment", get: (r) => r.l1Decision?.comment },
   { key: "l2Action", header: "L2 Action", get: (r) => r.l2Decision?.action },

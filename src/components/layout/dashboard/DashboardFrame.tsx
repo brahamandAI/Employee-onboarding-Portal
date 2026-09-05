@@ -5,12 +5,14 @@ import { DashboardSidebar } from "@/components/layout/dashboard/DashboardSidebar
 import { ProfileMenu } from "@/components/layout/dashboard/ProfileMenu";
 import { DashboardLiveRefresh } from "@/components/dashboard/DashboardLiveRefresh";
 import { DashboardBreadcrumbs } from "@/components/dashboard/DashboardBreadcrumbs";
+import { DeferredUnreadCount } from "@/components/dashboard/DeferredUnreadCount";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { getRoleLabel } from "@/lib/auth/permissions";
 import { StaffRole } from "@/types/enums";
 import { PanelLeft } from "lucide-react";
 import { useDashboardChrome } from "@/components/layout/dashboard/DashboardChromeContext";
+import { usePathname } from "next/navigation";
 
 interface DashboardFrameProps {
   children: React.ReactNode;
@@ -19,53 +21,96 @@ interface DashboardFrameProps {
     email: string;
     role: StaffRole;
   };
-  unreadCount: number;
+  unreadCountPromise: Promise<number>;
   notificationsHref: string;
   homeHref: string;
   profileHref: string;
 }
 
+const PAGE_TITLES: Record<string, string> = {
+  dashboard: "Overview",
+  pending: "Pending",
+  approved: "Approved",
+  rejected: "Reversed",
+  reversed: "Reversed",
+  "reversed-from-l2": "Reversed from L2",
+  all: "All Registrations",
+  registrations: "Registrations",
+  applications: "Applications",
+  documents: "Documents",
+  notifications: "Notifications",
+  profile: "Profile",
+  users: "Users",
+  edit: "Edit",
+  generate: "Generate ID Card",
+};
+
+function currentPageTitle(pathname: string): string {
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts.length <= 2) return "Overview";
+  const last = parts[parts.length - 1];
+  if (/^[a-f0-9]{24}$/i.test(last)) return "Details";
+  return (
+    PAGE_TITLES[last] ??
+    last.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+}
+
 function DashboardHeader({
   user,
-  unreadCount,
+  unreadCountPromise,
   notificationsHref,
   homeHref,
   profileHref,
 }: Omit<DashboardFrameProps, "children">) {
-  const { collapsed, setCollapsed } = useDashboardChrome();
+  const { collapsed, desktopCollapsed, setCollapsed, toggleDesktop } =
+    useDashboardChrome();
+  const pathname = usePathname();
+  const pageTitle = currentPageTitle(pathname);
 
   return (
     <header className="sticky top-0 z-20 shrink-0 border-b border-[#E2E8F0] bg-white/95 backdrop-blur-md">
-      <div className="flex h-14 items-center justify-between gap-3 px-4 sm:h-16 sm:px-6">
-        <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-h-14 items-center justify-between gap-3 px-3 py-2 sm:min-h-16 sm:px-6">
+        <div className="flex min-w-0 items-start gap-3">
           <button
             type="button"
-            onClick={() => setCollapsed(!collapsed)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#475569] transition hover:border-sky-200 hover:bg-[#EFF6FF] hover:text-[#1D4ED8] lg:hidden"
-            aria-label="Toggle sidebar"
+            suppressHydrationWarning
+            onClick={() => {
+              if (window.innerWidth >= 1024) {
+                toggleDesktop();
+              } else {
+                setCollapsed(!collapsed);
+              }
+            }}
+            className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#475569] transition hover:border-sky-200 hover:bg-[#EFF6FF] hover:text-[#1D4ED8]"
+            aria-label={desktopCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <PanelLeft className="h-4 w-4" />
           </button>
           <BrandLogo
             href={homeHref}
             variant="dark"
-            className="max-w-[160px] sm:max-w-[200px] lg:hidden"
+            className="mt-0.5 max-w-[140px] sm:max-w-[180px] lg:hidden"
           />
           <div className="hidden min-w-0 lg:block">
-            <div className="flex items-center gap-2">
-              <h1 className="truncate font-heading text-base font-semibold text-primary">
-                Employee Onboarding
+            <div className="flex h-9 flex-wrap items-center gap-2">
+              <h1 className="truncate font-heading text-base font-semibold leading-none text-primary">
+                {pageTitle}
               </h1>
-              <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#64748B]">
+              <span className="inline-flex h-5 items-center rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-2 text-[10px] font-semibold uppercase leading-none tracking-wide text-[#64748B]">
                 {getRoleLabel(user.role)}
               </span>
             </div>
-            <DashboardBreadcrumbs homeHref={homeHref} className="mt-0.5" />
+            <DashboardBreadcrumbs homeHref={homeHref} className="mt-1" />
           </div>
-          <DashboardLiveRefresh role={user.role} />
+          <DashboardLiveRefresh role={user.role} className="mt-0.5 hidden h-9 sm:inline-flex" />
         </div>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          <NotificationBell href={notificationsHref} unreadCount={unreadCount} />
+          <DeferredUnreadCount promise={unreadCountPromise}>
+            {(unreadCount) => (
+              <NotificationBell href={notificationsHref} unreadCount={unreadCount} />
+            )}
+          </DeferredUnreadCount>
           <ProfileMenu
             userName={user.name}
             userEmail={user.email}
@@ -75,6 +120,7 @@ function DashboardHeader({
         </div>
       </div>
       <div className="border-t border-[#F1F5F9] px-4 py-2 lg:hidden">
+        <p className="mb-1 font-heading text-sm font-semibold text-primary">{pageTitle}</p>
         <DashboardBreadcrumbs homeHref={homeHref} />
       </div>
     </header>
@@ -82,22 +128,22 @@ function DashboardHeader({
 }
 
 export function DashboardFrame(props: DashboardFrameProps) {
-  const { children, user, unreadCount, homeHref, profileHref, ...headerProps } =
+  const { children, user, unreadCountPromise, homeHref, profileHref, ...headerProps } =
     props;
 
   return (
     <DashboardChromeProvider>
       <div className="dashboard-shell-bg flex h-dvh overflow-hidden">
-        <DashboardSidebar role={user.role} unreadCount={unreadCount} />
+        <DashboardSidebar role={user.role} unreadCountPromise={unreadCountPromise} />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-l border-[#E2E8F0]/70 bg-[#F7F9FC]">
           <DashboardHeader
             user={user}
-            unreadCount={unreadCount}
+            unreadCountPromise={unreadCountPromise}
             homeHref={homeHref}
             profileHref={profileHref}
             {...headerProps}
           />
-          <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
+          <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-4 sm:p-6">
             <div className="mx-auto w-full max-w-7xl">{children}</div>
           </main>
         </div>

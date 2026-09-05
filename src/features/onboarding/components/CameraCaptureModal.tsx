@@ -58,8 +58,8 @@ export function CameraCaptureModal({
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode,
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
           },
           audio: false,
         });
@@ -100,13 +100,22 @@ export function CameraCaptureModal({
     const video = videoRef.current;
     if (!video || !video.videoWidth) return;
 
+    const maxWidth = 1280;
+    let width = video.videoWidth;
+    let height = video.videoHeight;
+    if (width > maxWidth) {
+      height = Math.round((height * maxWidth) / width);
+      width = maxWidth;
+    }
+
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    ctx.drawImage(video, 0, 0);
+    ctx.drawImage(video, 0, 0, width, height);
+    onClose();
     canvas.toBlob(
       (blob) => {
         if (!blob) return;
@@ -114,10 +123,9 @@ export function CameraCaptureModal({
           type: "image/jpeg",
         });
         onCapture(file);
-        onClose();
       },
       "image/jpeg",
-      0.92
+      0.82
     );
   }
 

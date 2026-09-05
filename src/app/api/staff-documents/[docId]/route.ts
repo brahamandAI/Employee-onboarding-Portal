@@ -57,25 +57,42 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
   }
 
-  const upstream = await fetch(doc.url, { cache: "no-store" });
-  if (!upstream.ok) {
+  let upstream: Response;
+  try {
+    upstream = await fetch(doc.url, {
+      cache: "force-cache",
+      next: { revalidate: 300 },
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "Unable to fetch document" },
+      { status: 504 }
+    );
+  }
+
+  if (!upstream.ok || !upstream.body) {
     return NextResponse.json(
       { error: "Unable to fetch document" },
       { status: 502 }
     );
   }
 
-  const buffer = Buffer.from(await upstream.arrayBuffer());
   const download = request.nextUrl.searchParams.get("mode") === "download";
   const safeName = doc.fileName.replace(/["\\\r\n]/g, "");
+  const contentType =
+    doc.mimeType ||
+    upstream.headers.get("content-type") ||
+    "application/octet-stream";
 
-  return new NextResponse(buffer, {
+  return new NextResponse(upstream.body, {
     status: 200,
     headers: {
-      "Content-Type": doc.mimeType || "application/octet-stream",
+      "Content-Type": contentType,
       "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${safeName}"`,
-      "Content-Length": String(buffer.length),
-      "Cache-Control": "private, no-store",
+      "Cache-Control": download
+        ? "private, no-store"
+        : "private, max-age=300, immutable",
     },
   });
 }

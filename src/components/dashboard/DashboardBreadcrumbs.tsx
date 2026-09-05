@@ -49,15 +49,7 @@ export function DashboardBreadcrumbs({
   const parts = pathname.split("/").filter(Boolean);
 
   if (parts.length <= 2) {
-    return (
-      <nav
-        aria-label="Breadcrumb"
-        className={cn("flex items-center gap-1.5 text-xs text-[#64748B]", className)}
-      >
-        <Home className="h-3.5 w-3.5 shrink-0 text-[#94A3B8]" />
-        <span className="font-medium text-primary">Overview</span>
-      </nav>
-    );
+    return null;
   }
 
   const crumbs: { href: string; label: string }[] = [];
@@ -78,22 +70,22 @@ export function DashboardBreadcrumbs({
     >
       <Link
         href={homeHref}
-        className="inline-flex items-center gap-1 rounded-md px-1 py-0.5 transition hover:bg-[#EFF6FF] hover:text-[#1D4ED8]"
+        className="inline-flex h-4 items-center gap-1 rounded-md px-1 leading-none transition hover:bg-[#EFF6FF] hover:text-[#1D4ED8]"
       >
-        <Home className="h-3.5 w-3.5" />
-        <span className="sr-only sm:not-sr-only">Home</span>
+        <Home className="relative top-px h-3.5 w-3.5 shrink-0" />
+        <span className="sr-only sm:not-sr-only leading-none">Home</span>
       </Link>
       {crumbs.map((crumb, idx) => {
         const isLast = idx === crumbs.length - 1;
         return (
-          <span key={crumb.href} className="inline-flex min-w-0 items-center gap-1">
+          <span key={crumb.href} className="inline-flex h-4 min-w-0 items-center gap-1">
             <ChevronRight className="h-3 w-3 shrink-0 text-[#CBD5E1]" />
             {isLast ? (
-              <span className="truncate font-semibold text-primary">{crumb.label}</span>
+              <span className="truncate font-semibold leading-none text-primary">{crumb.label}</span>
             ) : (
               <Link
                 href={crumb.href}
-                className="truncate rounded-md px-1 py-0.5 transition hover:bg-[#EFF6FF] hover:text-[#1D4ED8]"
+                className="truncate rounded-md px-1 py-0.5 leading-none transition hover:bg-[#EFF6FF] hover:text-[#1D4ED8]"
               >
                 {crumb.label}
               </Link>

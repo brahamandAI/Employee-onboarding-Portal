@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { IdCardQueueItem } from "@/lib/services/support.service";
 import { StatusBadge } from "@/features/l1/components/StatusBadge";
@@ -9,6 +11,8 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { DataListToolbar } from "@/components/dashboard/DataListToolbar";
+import { useFilteredList } from "@/components/dashboard/use-filtered-list";
 
 interface IdCardQueueTableProps {
   items: IdCardQueueItem[];
@@ -38,6 +42,17 @@ export function IdCardQueueTable({
   showCompleted = false,
   actionPathPrefix = "/dashboard/support/id-cards/generate",
 }: IdCardQueueTableProps) {
+  const list = useFilteredList(
+    items,
+    (item) => item.status,
+    (item) =>
+      [item.employeeIdCode, item.fullName, item.designation, item.department, item.branch]
+        .filter(Boolean)
+        .join(" "),
+    (item) => item.forwardedToSupportAt ?? item.completedAt,
+    (item) => item.fullName
+  );
+
   if (items.length === 0) {
     return (
       <EmptyState
@@ -49,8 +64,21 @@ export function IdCardQueueTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[#E2E8F0] bg-white">
-      <div className="overflow-x-auto">
+    <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      <DataListToolbar
+        search={list.search}
+        onSearchChange={list.setSearch}
+        statusFilter={list.statusFilter}
+        onStatusFilterChange={list.setStatusFilter}
+        sort={list.sort}
+        onSortChange={list.setSort}
+        total={list.total}
+        page={list.page}
+        pageCount={list.pageCount}
+        onPageChange={list.setPage}
+        searchPlaceholder="Search name or employee ID"
+      />
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]">
@@ -73,7 +101,7 @@ export function IdCardQueueTable({
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
+            {list.rows.map((item) => (
               <tr
                 key={item._id}
                 className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F8FAFC]"
@@ -142,6 +170,37 @@ export function IdCardQueueTable({
           </tbody>
         </table>
       </div>
+      <div className="space-y-3 p-3 md:hidden">
+        {list.rows.map((item) => (
+          <article
+            key={item._id}
+            className="rounded-xl border border-[#E2E8F0] p-4 shadow-sm"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-heading font-semibold text-primary">{item.fullName}</p>
+                <p className="mt-0.5 font-mono text-xs text-[#64748B]">{item.employeeIdCode}</p>
+              </div>
+              <StatusBadge status={item.status} />
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <ActionLink
+                href={`${actionPathPrefix}/${item._id}`}
+                icon={item.hasDraftCard ? Eye : FileOutput}
+                label={item.hasDraftCard ? "Preview" : "Generate"}
+              />
+              {item.idCardId && (
+                <ActionLink
+                  href={`/api/id-cards/${item.idCardId}/download`}
+                  icon={Download}
+                  label="Download"
+                  external
+                />
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }
@@ -164,7 +223,7 @@ function ActionLink({
       href={href}
       target={target ?? (external ? "_blank" : undefined)}
       rel={external ? "noopener noreferrer" : undefined}
-      className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium text-primary hover:bg-muted"
+                    className="inline-flex h-8 items-center gap-1 rounded-lg border border-[#E2E8F0] bg-white px-2 text-xs font-medium text-primary hover:bg-[#F8FAFC]"
     >
       <Icon className="h-3.5 w-3.5" />
       {label}

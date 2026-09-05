@@ -11,7 +11,7 @@ export default async function SupportEmployeeDocumentsPage() {
 
   return (
     <div className="space-y-6">
-      <DashboardBackLink href="/dashboard/support" label="Back to dashboard" />
+      <DashboardBackLink href="/dashboard/support" />
       <DashboardPageHeader
         title="Employee Documents"
         description="Access employee folders after L2 approval. Open a folder to view and download documents."

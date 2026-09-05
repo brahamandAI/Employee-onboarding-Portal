@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState, type ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/features/l1/components/StatusBadge";
 import { L1ActionPanel } from "@/features/l1/components/L1ActionPanel";
@@ -17,7 +20,7 @@ interface HistoryItem {
   fromStatus: string;
   toStatus: string;
   comment?: string;
-  createdAt: Date;
+  createdAt: string | Date;
   performedBy?: { name?: string };
 }
 
@@ -39,18 +42,19 @@ interface EmployeeDetailViewProps {
     gunman?: Record<string, unknown>;
     additionalDetails?: Record<string, unknown>;
     declaration?: Record<string, unknown>;
-    submittedAt?: Date;
+    submittedAt?: string;
     submittedBy?: { name?: string; email?: string } | null;
     l1Decision?: {
-      action: "APPROVE" | "REJECT" | "RETURN";
+      action: string;
       comment?: string;
-      decidedAt?: Date;
+      approvedByName?: string;
+      decidedAt?: string;
       decidedBy?: { name?: string; email?: string } | null;
     };
     l2Decision?: {
       action: string;
       comment?: string;
-      decidedAt?: Date;
+      decidedAt?: string;
       decidedBy?: { name?: string; email?: string } | null;
     };
     correctionNotes?: string;
@@ -75,12 +79,14 @@ function hasValues(data?: Record<string, unknown> | null): boolean {
 function DetailSection({
   title,
   children,
+  id,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
+  id?: string;
 }) {
   return (
-    <Card>
+    <Card id={id} className="scroll-mt-24">
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
@@ -129,6 +135,15 @@ export function EmployeeDetailView({
   const l2ReverseNote = reversedFromL2
     ? (employee.l2Decision?.comment ?? employee.correctionNotes)
     : undefined;
+  const [status, setStatus] = useState(employee.status);
+
+  useEffect(() => {
+    setStatus(employee.status);
+  }, [employee.status]);
+
+  function jumpTo(id: string) {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   return (
     <div className="space-y-6">
@@ -139,7 +154,7 @@ export function EmployeeDetailView({
           </h2>
           <p className="text-[#64748B]">{employee.applicationRef}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <StatusBadge status={employee.status} />
+            <StatusBadge status={status} />
             <LiveBadge />
             {employee.employeeId && (
               <span className="font-mono text-sm text-primary">
@@ -147,15 +162,32 @@ export function EmployeeDetailView({
               </span>
             )}
           </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {[
+              { id: "l1-contact", label: "Contact" },
+              { id: "l1-documents", label: "Documents" },
+              { id: "l1-review", label: "Review" },
+            ].map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => jumpTo(item.id)}
+                className="rounded-full border border-[#E2E8F0] bg-white px-3 py-1 text-xs font-medium text-[#334155] transition hover:border-[#BFDBFE] hover:bg-[#EFF6FF] hover:text-[#1D4ED8]"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
         </div>
         {[
           EmployeeStatus.SUBMITTED,
           EmployeeStatus.L1_REVIEW,
           EmployeeStatus.L1_RETURNED,
           EmployeeStatus.L2_RETURNED,
-        ].includes(employee.status) && (
+        ].includes(status) && (
           <Link
             href={`/dashboard/l1/applications/${employee._id}/edit`}
+            prefetch
             className="inline-flex h-9 items-center gap-2 rounded-md border border-primary px-3 text-sm font-medium text-primary hover:bg-primary/5"
           >
             <Pencil className="h-4 w-4" />
@@ -198,7 +230,7 @@ export function EmployeeDetailView({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ApprovalTimeline status={employee.status} />
+          <ApprovalTimeline status={status} />
         </CardContent>
       </Card>
 
@@ -208,6 +240,20 @@ export function EmployeeDetailView({
           <p className="mt-1 text-sm text-sky-700">
             {employee.submittedBy.name}
             {employee.submittedBy.email ? ` (${employee.submittedBy.email})` : ""}
+          </p>
+        </div>
+      )}
+
+      {employee.l1Decision?.action === "APPROVE" && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <p className="text-sm font-medium text-emerald-800">Approved by</p>
+          <p className="mt-1 text-sm text-emerald-700">
+            {employee.l1Decision.approvedByName ||
+              employee.l1Decision.decidedBy?.name ||
+              "L1"}
+            {employee.l1Decision.decidedAt
+              ? ` — ${new Date(employee.l1Decision.decidedAt).toLocaleString("en-IN")}`
+              : ""}
           </p>
         </div>
       )}
@@ -224,7 +270,7 @@ export function EmployeeDetailView({
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <DetailSection title="Contact">
+        <DetailSection id="l1-contact" title="Contact">
           <KeyValueGrid
             data={{
               email: employee.email,
@@ -307,6 +353,7 @@ export function EmployeeDetailView({
       )}
 
       <DetailSection
+        id="l1-documents"
         title={`Documents${documents.length > 0 ? ` (${documents.length})` : ""}`}
       >
         <p className="mb-3 text-sm text-[#64748B]">
@@ -344,7 +391,7 @@ export function EmployeeDetailView({
         </DetailSection>
       )}
 
-      <section className="mt-2 space-y-3 border-t border-[#E2E8F0] pt-6">
+      <section id="l1-review" className="mt-2 scroll-mt-24 space-y-3 border-t border-[#E2E8F0] pt-6">
         <div>
           <h3 className="font-heading text-lg font-semibold text-primary">
             Review Decision
@@ -355,8 +402,9 @@ export function EmployeeDetailView({
         </div>
         <L1ActionPanel
           employeeId={employee._id}
-          status={employee.status}
+          status={status}
           employeeIdCode={employee.employeeId}
+          onStatusChange={setStatus}
         />
       </section>
     </div>

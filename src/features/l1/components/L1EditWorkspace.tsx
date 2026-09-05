@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { OnboardingWizardLoader } from "@/features/onboarding/components/OnboardingWizardLoader";
+import { OnboardingWizard } from "@/features/onboarding/components/OnboardingWizard";
 import { openL1EmployeeEditSession } from "@/features/l1/actions/l1-edit.actions";
 import type { OnboardingEmployee } from "@/features/onboarding/types";
 
@@ -12,7 +12,6 @@ export function L1EditWorkspace({
   employeeId: string;
   employee: OnboardingEmployee;
 }) {
-  const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -22,9 +21,7 @@ export function L1EditWorkspace({
       if (cancelled) return;
       if (!result.success) {
         setError(result.error);
-        return;
       }
-      setReady(true);
     })();
     return () => {
       cancelled = true;
@@ -39,16 +36,8 @@ export function L1EditWorkspace({
     );
   }
 
-  if (!ready) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center text-sm text-[#64748B]">
-        Preparing edit form…
-      </div>
-    );
-  }
-
   return (
-    <OnboardingWizardLoader
+    <OnboardingWizard
       employee={employee}
       registrationMode={false}
       l1EditMode

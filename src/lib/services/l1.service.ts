@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/db/connect";
 import { Employee } from "@/lib/db/models/Employee";
 import { EmployeeStatus } from "@/types/enums";
 import { L1_PENDING_FILTER } from "@/lib/services/approval-queue";
+import { toClientProps } from "@/lib/serialize/client-props";
 
 export interface ApplicationListItem {
   _id: string;
@@ -35,7 +36,7 @@ function mapEmployee(emp: Record<string, unknown>): ApplicationListItem {
   const personal = emp.personalDetails as { fullName?: string; postAppliedFor?: string } | undefined;
   const submittedBy = emp.submittedBy as { name?: string } | null | undefined;
   const l1Decision = emp.l1Decision as
-    | { decidedBy?: { name?: string } | null }
+    | { decidedBy?: { name?: string } | null; approvedByName?: string }
     | undefined;
   const l2Decision = emp.l2Decision as
     | {
@@ -46,7 +47,7 @@ function mapEmployee(emp: Record<string, unknown>): ApplicationListItem {
       }
     | undefined;
   const isL2Reversal = l2Decision?.action === "RETURN_TO_L1";
-  return {
+  return toClientProps({
     _id: String(emp._id),
     applicationRef: String(emp.applicationRef),
     fullName: personal?.fullName ?? "Unknown",
@@ -65,7 +66,7 @@ function mapEmployee(emp: Record<string, unknown>): ApplicationListItem {
       submittedBy && typeof submittedBy === "object" && submittedBy.name
         ? submittedBy.name
         : undefined,
-    l1ApprovedByName: l1Decision?.decidedBy?.name,
+    l1ApprovedByName: l1Decision?.approvedByName || l1Decision?.decidedBy?.name,
     l2ReverseNote: isL2Reversal
       ? (l2Decision?.comment ?? (emp.correctionNotes as string | undefined))
       : undefined,
@@ -74,7 +75,7 @@ function mapEmployee(emp: Record<string, unknown>): ApplicationListItem {
         ? new Date(l2Decision.decidedAt).toISOString()
         : undefined,
     l2ReversedByName: isL2Reversal ? l2Decision?.decidedBy?.name : undefined,
-  };
+  });
 }
 
 export async function getL1Stats(l1UserId: string) {

@@ -6,6 +6,7 @@ import { EmployeeDocument } from "@/lib/db/models/EmployeeDocument";
 import { EmployeeStatus } from "@/types/enums";
 import { ADMIN_REGISTRATIONS_FILTER } from "@/lib/services/approval-queue";
 import { DocumentType } from "@/features/onboarding/constants";
+import { toClientProps } from "@/lib/serialize/client-props";
 
 export interface IdCardQueueItem {
   _id: string;
@@ -55,7 +56,7 @@ function mapEmployee(
     postAppliedFor?: string;
   } | undefined;
 
-  return {
+  return toClientProps({
     _id: String(emp._id),
     applicationRef: String(emp.applicationRef),
     employeeIdCode: String(emp.employeeId),
@@ -76,7 +77,7 @@ function mapEmployee(
     completedAt: card?.completedAt
       ? new Date(card.completedAt).toISOString()
       : undefined,
-  };
+  });
 }
 
 async function enrichQueueItems(
@@ -175,14 +176,16 @@ export async function getDownloadHistory(limit = 50): Promise<DownloadHistoryIte
     .populate("performedBy", "name")
     .lean();
 
-  return logs.map((log) => ({
-    _id: String(log._id),
-    employeeIdCode: log.employeeIdCode,
-    employeeName: log.employeeName,
-    action: log.action,
-    performedByName: (log.performedBy as { name?: string } | undefined)?.name,
-    createdAt: log.createdAt.toISOString(),
-  }));
+  return logs.map((log) =>
+    toClientProps({
+      _id: String(log._id),
+      employeeIdCode: log.employeeIdCode,
+      employeeName: log.employeeName,
+      action: log.action,
+      performedByName: (log.performedBy as { name?: string } | undefined)?.name,
+      createdAt: log.createdAt.toISOString(),
+    })
+  );
 }
 
 export async function getEligibleForGeneration(): Promise<IdCardQueueItem[]> {

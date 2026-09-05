@@ -70,6 +70,7 @@ export function ProfileMenu({
     <div className="relative" ref={rootRef}>
       <button
         type="button"
+        suppressHydrationWarning
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"

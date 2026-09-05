@@ -25,7 +25,7 @@ export function ProfilePageView({
 }: ProfilePageViewProps) {
   return (
     <div className="space-y-6">
-      <DashboardBackLink href={backHref} label="Back to dashboard" />
+      <DashboardBackLink href={backHref} />
       <div>
         <h2 className="font-heading text-2xl font-bold text-primary">Profile</h2>
         <p className="text-[#64748B]">Account details, security, and sign-in options.</p>

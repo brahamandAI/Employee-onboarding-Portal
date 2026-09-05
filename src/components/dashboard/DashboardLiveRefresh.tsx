@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -24,7 +24,7 @@ interface LivePayload {
 function liveUpdateMessage(role: StaffRole): string {
   switch (role) {
     case UserRole.SUBMITTER:
-      return "Registration status updated — Temporary Employee ID may be available.";
+      return "A submitted registration was updated.";
     case UserRole.L1:
       return "Application queue updated — check pending reviews.";
     case UserRole.L2:
@@ -40,19 +40,22 @@ function liveUpdateMessage(role: StaffRole): string {
 
 export function DashboardLiveRefresh({
   role,
-  intervalMs = 3000,
+  intervalMs = 8000,
   className,
 }: DashboardLiveRefreshProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { toast } = useToast();
   const lastFingerprint = useRef<string | null>(null);
   const isFirstPoll = useRef(true);
 
   useEffect(() => {
     let active = true;
+    let inFlight = false;
 
     async function poll() {
-      if (document.hidden) return;
+      if (document.hidden || inFlight) return;
+      inFlight = true;
 
       try {
         const res = await fetch("/api/dashboard/live", { cache: "no-store" });
@@ -68,6 +71,11 @@ export function DashboardLiveRefresh({
         }
 
         if (previous && previous !== data.fingerprint) {
+          const fillingNewRegistration =
+            role === UserRole.SUBMITTER && pathname === "/dashboard/submitter";
+          if (fillingNewRegistration) {
+            return;
+          }
           router.refresh();
           toast({
             title: "Live update",
@@ -77,6 +85,8 @@ export function DashboardLiveRefresh({
         }
       } catch {
         // ignore transient network errors
+      } finally {
+        inFlight = false;
       }
     }
 
@@ -93,7 +103,7 @@ export function DashboardLiveRefresh({
       clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [router, intervalMs, toast, role]);
+  }, [router, intervalMs, toast, role, pathname]);
 
   return (
     <span

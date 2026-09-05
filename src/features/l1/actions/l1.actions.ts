@@ -8,6 +8,8 @@ import {
   performL1Reject,
   performL1Return,
   ApprovalError,
+  isNextRedirectError,
+  describeApprovalFailure,
 } from "@/lib/services/approval.service";
 import {
   l1ApproveSchema,
@@ -48,6 +50,7 @@ export async function l1ApproveAction(
   const user = await requireL1();
   const parsed = l1ApproveSchema.safeParse({
     employeeId: formData.get("employeeId"),
+    approvedByName: formData.get("approvedByName"),
     comment: formData.get("comment") || undefined,
   });
 
@@ -56,14 +59,28 @@ export async function l1ApproveAction(
   }
 
   try {
-    const result = await performL1Approve(parsed.data.employeeId, user.id, parsed.data.comment);
-    revalidateAfterL1Action(parsed.data.employeeId);
+    const result = await performL1Approve(
+      parsed.data.employeeId,
+      user.id,
+      parsed.data.approvedByName,
+      parsed.data.comment
+    );
+    try {
+      revalidateAfterL1Action(parsed.data.employeeId);
+    } catch (error) {
+      console.error("[l1-approve] revalidate", error);
+    }
     return { success: true, data: result };
   } catch (error) {
+    if (isNextRedirectError(error)) throw error;
     if (error instanceof ApprovalError) {
       return { success: false, error: error.message, code: error.code };
     }
-    return { success: false, error: "Approval failed" };
+    console.error("[l1-approve]", error);
+    return {
+      success: false,
+      error: describeApprovalFailure(error, "Approval failed"),
+    };
   }
 }
 

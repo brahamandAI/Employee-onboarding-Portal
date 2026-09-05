@@ -9,6 +9,7 @@ import { StaffRole, UserRole } from "@/types/enums";
 import { hashPassword } from "@/lib/auth/password";
 import { logAudit } from "@/lib/services/audit.service";
 import { SITE } from "@/features/marketing/constants";
+import { toClientProps } from "@/lib/serialize/client-props";
 
 export class AdminError extends Error {
   constructor(
@@ -83,7 +84,7 @@ export async function getCompanyDetails(): Promise<CompanyDetails> {
   await connectDB();
   const doc = await Setting.findOne({ key: COMPANY_KEY }).lean();
   if (!doc) return DEFAULT_COMPANY;
-  return { ...DEFAULT_COMPANY, ...(doc.value as unknown as CompanyDetails) };
+  return toClientProps({ ...DEFAULT_COMPANY, ...(doc.value as unknown as CompanyDetails) });
 }
 
 export async function updateCompanyDetails(ctx: AdminContext, data: CompanyDetails): Promise<void> {
@@ -100,7 +101,7 @@ export async function getAppSettings(): Promise<AppSettings> {
   await connectDB();
   const doc = await Setting.findOne({ key: APP_SETTINGS_KEY }).lean();
   if (!doc) return DEFAULT_SETTINGS;
-  return { ...DEFAULT_SETTINGS, ...(doc.value as unknown as AppSettings) };
+  return toClientProps({ ...DEFAULT_SETTINGS, ...(doc.value as unknown as AppSettings) });
 }
 
 export async function updateAppSettings(ctx: AdminContext, data: AppSettings): Promise<void> {

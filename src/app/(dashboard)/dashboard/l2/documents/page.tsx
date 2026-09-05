@@ -11,7 +11,7 @@ export default async function L2EmployeeDocumentsPage() {
 
   return (
     <div className="space-y-6">
-      <DashboardBackLink href="/dashboard/l2" label="Back to dashboard" />
+      <DashboardBackLink href="/dashboard/l2" />
       <DashboardPageHeader
         title="Employee Documents"
         description="Employee folders created after L2 approval and Temporary Employee ID generation."

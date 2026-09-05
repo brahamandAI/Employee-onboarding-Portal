@@ -10,7 +10,7 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { user } = await requireStaffAuth();
-  const unreadCount = await getStaffUnreadCount(user.id);
+  const unreadCountPromise = getStaffUnreadCount(user.id);
   const notificationsHref =
     STAFF_NOTIFICATIONS_PATH[user.role] ?? "/dashboard/admin/notifications";
 
@@ -28,7 +28,7 @@ export default async function DashboardLayout({
   return (
     <DashboardFrame
       user={{ name: user.name, email: user.email, role: user.role }}
-      unreadCount={unreadCount}
+      unreadCountPromise={unreadCountPromise}
       notificationsHref={notificationsHref}
       homeHref={homeHref}
       profileHref={`${homeHref}/profile`}

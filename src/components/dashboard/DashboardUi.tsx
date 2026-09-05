@@ -173,7 +173,7 @@ export function DashboardStatCard({
   );
 
   const cardClass = cn(
-    "group relative overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-[#BFDBFE] hover:shadow-[0_16px_40px_-24px_rgba(29,78,216,0.45)]",
+    "group relative overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:border-[#BFDBFE]",
     className
   );
 

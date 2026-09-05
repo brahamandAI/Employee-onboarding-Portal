@@ -1,11 +1,14 @@
+import { cache } from "react";
 import { auth } from "@/lib/auth/config";
 import { StaffRole } from "@/types/enums";
 import { canAccessRoute } from "@/lib/auth/permissions";
 import { redirect } from "next/navigation";
 import { ROLE_DASHBOARD_PATH } from "@/types/enums";
 
+const getSession = cache(() => auth());
+
 export async function requireStaffAuth(requiredRole?: StaffRole) {
-  const session = await auth();
+  const session = await getSession();
 
   if (!session?.user) {
     redirect("/staff/login");
@@ -21,7 +24,7 @@ export async function requireStaffAuth(requiredRole?: StaffRole) {
 }
 
 export async function requireRoleAccess(pathname: string) {
-  const session = await auth();
+  const session = await getSession();
 
   if (!session?.user) {
     return { authorized: false as const, reason: "unauthenticated" as const };
@@ -44,5 +47,5 @@ export async function requireRoleAccess(pathname: string) {
 }
 
 export async function getStaffSession() {
-  return auth();
+  return getSession();
 }

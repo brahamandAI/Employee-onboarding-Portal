@@ -5,6 +5,10 @@ import { getEmployeeDetailForReview } from "@/lib/services/approval.service";
 import { EmployeeDetailView } from "@/features/l1/components/EmployeeDetailView";
 import { DashboardBackLink } from "@/components/dashboard/DashboardBackLink";
 import { mapReviewDocuments } from "@/features/documents/utils/map-review-documents";
+import {
+  clientHistoryItems,
+  serializeReviewEmployee,
+} from "@/lib/serialize/client-props";
 
 export const metadata = { title: "Employee Details | L1" };
 
@@ -28,83 +32,11 @@ export default async function L1EmployeeDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-4">
-      <DashboardBackLink href="/dashboard/l1/applications/pending" label="Back to applications" />
+      <DashboardBackLink href="/dashboard/l1/applications/pending" />
       <EmployeeDetailView
-        employee={{
-          _id: String(employee._id),
-          applicationRef: employee.applicationRef,
-          status: employee.status,
-          email: employee.email,
-          phone: employee.phone,
-          employeeId: employee.employeeId,
-          personalDetails: employee.personalDetails as Record<string, unknown>,
-          address: employee.address as Record<string, unknown>,
-          education: employee.education as Record<string, unknown>,
-          references: employee.references as Record<string, unknown>[],
-          familyDetails: employee.familyDetails as Record<string, unknown>[],
-          nominee: employee.nominee as Record<string, unknown>,
-          exServiceman: employee.exServiceman as Record<string, unknown>,
-          gunman: (employee as { gunman?: Record<string, unknown> }).gunman,
-          additionalDetails: employee.additionalDetails as Record<string, unknown>,
-          declaration: employee.declaration as Record<string, unknown>,
-          submittedAt: employee.submittedAt,
-          submittedBy: (() => {
-            const s = employee.submittedBy as
-              | { name?: string; email?: string }
-              | null
-              | undefined;
-            return s?.name ? { name: s.name, email: s.email } : null;
-          })(),
-          l1Decision: employee.l1Decision
-            ? {
-                action: employee.l1Decision.action,
-                comment: employee.l1Decision.comment,
-                decidedAt: employee.l1Decision.decidedAt,
-                decidedBy: (() => {
-                  const d = employee.l1Decision.decidedBy as
-                    | { name?: string; email?: string }
-                    | null
-                    | undefined;
-                  return d?.name ? { name: d.name, email: d.email } : null;
-                })(),
-              }
-            : undefined,
-          l2Decision: employee.l2Decision
-            ? {
-                action: employee.l2Decision.action,
-                comment: employee.l2Decision.comment,
-                decidedAt: employee.l2Decision.decidedAt,
-                decidedBy: (() => {
-                  const d = employee.l2Decision.decidedBy as
-                    | { name?: string; email?: string }
-                    | null
-                    | undefined;
-                  return d?.name ? { name: d.name, email: d.email } : null;
-                })(),
-              }
-            : undefined,
-          correctionNotes: employee.correctionNotes,
-          rejectionReason: employee.rejectionReason,
-          pendingFieldChanges: (
-            employee as {
-              pendingFieldChanges?: Array<{
-                path: string;
-                label: string;
-                oldValue: string;
-                newValue: string;
-              }>;
-            }
-          ).pendingFieldChanges,
-        }}
+        employee={serializeReviewEmployee(employee)}
         documents={mapReviewDocuments(documents)}
-        history={history.map((h) => ({
-          action: h.action,
-          fromStatus: h.fromStatus,
-          toStatus: h.toStatus,
-          comment: h.comment,
-          createdAt: h.createdAt,
-          performedBy: h.performedBy as { name?: string } | undefined,
-        }))}
+        history={clientHistoryItems(history)}
       />
     </div>
   );

@@ -56,11 +56,11 @@
 
 @layer components {
   .ui-card {
-    @apply rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-300;
+    @apply rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)];
   }
 
   .ui-card:hover {
-    @apply border-sky-200 shadow-[0_16px_40px_-24px_rgba(14,165,233,0.45)];
+    @apply border-[#D5DEE8];
   }
 
   .ui-soft-panel {
@@ -85,15 +85,18 @@
   }
 
   .dashboard-shell-bg {
-    background-color: #eef2f7;
+    background-color: #f3f6fb;
     background-image:
-      radial-gradient(ellipse 80% 50% at 0% -10%, rgba(14, 165, 233, 0.08), transparent),
-      radial-gradient(ellipse 60% 40% at 100% 0%, rgba(212, 175, 55, 0.08), transparent),
-      linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+      radial-gradient(ellipse 70% 40% at 0% 0%, rgba(14, 165, 233, 0.05), transparent),
+      linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
   }
 
   .dashboard-panel {
     @apply rounded-2xl border border-[#E2E8F0]/90 bg-white/90 p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] backdrop-blur-sm sm:p-6;
+  }
+
+  .dashboard-form-panel {
+    @apply overflow-visible rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)];
   }
 
   .enterprise-table-wrap {

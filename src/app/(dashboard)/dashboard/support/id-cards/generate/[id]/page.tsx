@@ -1,11 +1,10 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireStaffAuth } from "@/lib/auth/guards";
 import { UserRole } from "@/types/enums";
 import { getIdCardPreviewData } from "@/lib/services/id-card.service";
 import { SupportActionPanel } from "@/features/support/components/SupportActionPanel";
+import { DashboardBackLink } from "@/components/dashboard/DashboardBackLink";
 import { StatusBadge } from "@/features/l1/components/StatusBadge";
-import { ArrowLeft } from "lucide-react";
 
 export const metadata = { title: "Generate ID Card | Support" };
 
@@ -24,13 +23,7 @@ export default async function SupportGenerateIdCardDetailPage({ params }: PagePr
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/dashboard/support/id-cards/generate"
-        className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to generate list
-      </Link>
+      <DashboardBackLink href="/dashboard/support/id-cards/generate" />
 
       <div>
         <h2 className="font-heading text-2xl font-bold text-primary">

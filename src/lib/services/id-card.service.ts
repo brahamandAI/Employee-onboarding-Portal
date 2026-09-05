@@ -17,6 +17,7 @@ import {
   dispatchIdCardGenerated,
   employeeNotifyContext,
 } from "@/lib/services/notification-dispatch.service";
+import { toClientProps } from "@/lib/serialize/client-props";
 
 export class IdCardError extends Error {
   constructor(
@@ -228,7 +229,7 @@ export async function getIdCardPreviewData(
   const expiryDate = activeCard?.expiryDate ?? addYears(issueDate, 2);
   const qrCodeDataUrl = await buildQrDataUrl(data, issueDate);
 
-  return {
+  return toClientProps({
     ...data,
     issueDate: issueDate.toISOString(),
     expiryDate: expiryDate.toISOString(),
@@ -238,7 +239,7 @@ export async function getIdCardPreviewData(
     idCardId: activeCard ? String(activeCard._id) : undefined,
     cardStatus: activeCard?.cardStatus,
     completedAt: activeCard?.completedAt?.toISOString(),
-  };
+  });
 }
 
 export async function recordIdCardPreview(

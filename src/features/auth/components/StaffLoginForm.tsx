@@ -1,21 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { staffLoginAction } from "@/features/auth/actions/auth.actions";
 import { StaffSignInFormFields } from "@/features/auth/components/StaffSignInFormFields";
 import { useToast } from "@/components/ui/toast";
 import { UserRole } from "@/types/enums";
 
-export function StaffLoginForm() {
-  const searchParams = useSearchParams();
+interface StaffLoginFormProps {
+  initialCallbackUrl?: string;
+  initialRole?: string;
+}
+
+export function StaffLoginForm({
+  initialCallbackUrl = "",
+  initialRole = UserRole.SUBMITTER,
+}: StaffLoginFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const callbackUrl = searchParams.get("callbackUrl") ?? "";
-  const portalRole = searchParams.get("role") ?? UserRole.SUBMITTER;
-  const [role, setRole] = useState(portalRole);
+  const callbackUrl = initialCallbackUrl;
+  const [role, setRole] = useState(initialRole);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

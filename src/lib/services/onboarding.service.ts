@@ -22,6 +22,7 @@ import {
 import { EmployeeStatus } from "@/types/enums";
 import { STEP_SCHEMAS } from "@/features/onboarding/schemas/onboarding.schema";
 import { computeFieldChanges } from "@/lib/utils/field-changes";
+import { toClientProps } from "@/lib/serialize/client-props";
 
 export class OnboardingError extends Error {
   constructor(
@@ -212,7 +213,7 @@ export async function getOnboardingEmployee(
     OnboardingEmployee["pendingFieldChanges"]
   >(employee.pendingFieldChanges, []);
 
-  return {
+  return toClientProps({
     _id: employee._id.toString(),
     applicationRef: employee.applicationRef,
     status: employee.status,
@@ -230,7 +231,7 @@ export async function getOnboardingEmployee(
     formData,
     documents: documents.map(mapDocumentRecord),
     lastSavedAt: employee.lastSavedAt?.toISOString(),
-  };
+  });
 }
 
 function mapDocumentRecord(doc: InstanceType<typeof EmployeeDocument>): DocumentRecord {
@@ -408,6 +409,15 @@ export async function saveOnboardingStep(
     applyStepData(employee, step, data);
   }
 
+  if (employee.currentStep > ONBOARDING_TOTAL_STEPS) {
+    employee.currentStep = ONBOARDING_TOTAL_STEPS;
+  }
+  if (Array.isArray(employee.completedSteps)) {
+    employee.completedSteps = employee.completedSteps.filter(
+      (s) => s >= 1 && s <= ONBOARDING_TOTAL_STEPS
+    );
+  }
+
   if (options.markComplete && !employee.completedSteps.includes(step)) {
     employee.completedSteps = [...employee.completedSteps, step].sort((a, b) => a - b);
   }
@@ -459,7 +469,7 @@ export async function uploadEmployeeDocument(
   const mimeType = normalizeMimeType(file.name, file.type);
 
   await connectDB();
-  const employee = await Employee.findById(employeeId);
+  const employee = await Employee.findById(employeeId).select("status applicationRef");
   if (!employee) {
     throw new OnboardingError("Application not found", "NOT_FOUND");
   }
@@ -565,8 +575,10 @@ export async function uploadEmployeeDocument(
     deleteDocumentFromCloudinary(previousUrl).catch(() => undefined);
   }
 
-  employee.lastSavedAt = new Date();
-  await employee.save();
+  void Employee.updateOne(
+    { _id: employeeId },
+    { $set: { lastSavedAt: new Date() } }
+  );
 
   return mapDocumentRecord(doc);
 }

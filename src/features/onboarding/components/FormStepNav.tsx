@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -11,23 +12,21 @@ interface FormStepNavProps {
   currentStep: number;
   completedSteps: number[];
   onStepClick?: (step: number) => void;
+  trailing?: ReactNode;
 }
 
 export function FormStepNav({
   currentStep,
   completedSteps,
   onStepClick,
+  trailing,
 }: FormStepNavProps) {
   return (
-    <nav
-      aria-label="Form sections"
-      className="sticky top-0 z-10 -mx-4 border-b border-[#E2E8F0] bg-white/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
-    >
-      <div className="flex gap-1 overflow-x-auto pb-1">
+    <nav aria-label="Form sections">
+      <div className="flex gap-1 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {ONBOARDING_STEPS.map((step) => {
           const done = completedSteps.includes(step.id);
           const active = step.id === currentStep;
-          const clickable = Boolean(onStepClick);
           const handleClick = () => {
             if (onStepClick) onStepClick(step.id);
           };
@@ -60,10 +59,15 @@ export function FormStepNav({
           );
         })}
       </div>
-      <p className="mt-2 text-[11px] text-[#64748B]">
-        Section {currentStep} of {ONBOARDING_TOTAL_STEPS}:{" "}
-        {ONBOARDING_STEPS[currentStep - 1]?.label}
-      </p>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <p className="min-w-0 truncate text-[11px] font-medium text-[#64748B]">
+          Section {currentStep} of {ONBOARDING_TOTAL_STEPS}:{" "}
+          <span className="text-[#1E3A8A]">
+            {ONBOARDING_STEPS[currentStep - 1]?.label}
+          </span>
+        </p>
+        {trailing}
+      </div>
     </nav>
   );
 }

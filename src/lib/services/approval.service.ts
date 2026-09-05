@@ -29,6 +29,44 @@ export class ApprovalError extends Error {
   }
 }
 
+function isTransientDbError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /timed out|timeout|ECONNRESET|ENOTFOUND|MongoNetwork|MongoServerSelection|connection/i.test(
+    message
+  );
+}
+
+async function retryOnce<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (!isTransientDbError(error)) throw error;
+    await connectDB();
+    return fn();
+  }
+}
+
+export function isNextRedirectError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    typeof (error as { digest?: string }).digest === "string" &&
+    (error as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+  );
+}
+
+export function describeApprovalFailure(error: unknown, fallback: string): string {
+  if (error instanceof ApprovalError) return error.message;
+  if (isTransientDbError(error)) {
+    return "Connection timed out. Please click Approve again.";
+  }
+  if (error instanceof Error && error.message && error.message.length < 160) {
+    return error.message;
+  }
+  return fallback;
+}
+
 async function recordHistory(params: {
   employeeId: mongoose.Types.ObjectId;
   fromStatus: string;
@@ -96,50 +134,74 @@ export async function assignL1OnSubmit(
 export async function performL1Approve(
   employeeId: string,
   reviewerId: string,
+  approvedByName: string,
   comment?: string
 ): Promise<{ employeeIdCode?: string }> {
-  await connectDB();
-  const employee = await Employee.findById(employeeId);
-  if (!employee) throw new ApprovalError("Application not found", "NOT_FOUND");
+  const trimmedName = approvedByName?.trim() ?? "";
+  if (trimmedName.length < 2) {
+    throw new ApprovalError("Enter the L1 name in Approved by", "VALIDATION");
+  }
+  if (!mongoose.isValidObjectId(employeeId)) {
+    throw new ApprovalError("Application not found", "NOT_FOUND");
+  }
+  if (!mongoose.isValidObjectId(reviewerId)) {
+    throw new ApprovalError("Please sign in again to approve", "AUTH");
+  }
 
-  const allowed = [EmployeeStatus.SUBMITTED, EmployeeStatus.L1_REVIEW];
-  if (!allowed.includes(employee.status)) {
+  await connectDB();
+
+  const now = new Date();
+  const updated = await retryOnce(() =>
+    Employee.findOneAndUpdate(
+      {
+        _id: employeeId,
+        status: { $in: [EmployeeStatus.SUBMITTED, EmployeeStatus.L1_REVIEW] },
+      },
+      {
+        $set: {
+          status: EmployeeStatus.L2_REVIEW,
+          l1Decision: {
+            action: "APPROVE",
+            comment,
+            approvedByName: trimmedName,
+            decidedBy: new mongoose.Types.ObjectId(reviewerId),
+            decidedAt: now,
+          },
+          l1ApprovedAt: now,
+        },
+        $unset: { correctionNotes: "", l2Decision: "" },
+      },
+      { new: true }
+    )
+  );
+
+  if (!updated) {
+    const existing = await Employee.findById(employeeId)
+      .select("status l1Decision")
+      .lean();
+    if (!existing) throw new ApprovalError("Application not found", "NOT_FOUND");
+    if (
+      existing.status === EmployeeStatus.L2_REVIEW &&
+      existing.l1Decision?.action === "APPROVE"
+    ) {
+      return {};
+    }
     throw new ApprovalError("Application is not in L1 review", "INVALID_STATUS");
   }
 
-  const fromStatus = employee.status;
-  employee.status = EmployeeStatus.L2_REVIEW;
-  employee.l1Decision = {
-    action: "APPROVE",
-    comment,
-    decidedBy: new mongoose.Types.ObjectId(reviewerId),
-    decidedAt: new Date(),
-  };
-  employee.l1ApprovedAt = new Date();
-  employee.correctionNotes = undefined;
-  const clearL2SendBack = employee.l2Decision?.action === "RETURN_TO_L1";
-  await employee.save();
-
-  // A previous L2 send-back is resolved once L1 re-approves, so the application
-  // leaves the L2 reversed list and re-enters the L2 queue.
-  if (clearL2SendBack) {
-    await Employee.updateOne(
-      { _id: employee._id },
-      { $unset: { l2Decision: "" } }
-    );
-  }
-
-  await recordHistory({
-    employeeId: employee._id,
-    fromStatus,
+  void recordHistory({
+    employeeId: updated._id,
+    fromStatus: EmployeeStatus.L1_REVIEW,
     toStatus: EmployeeStatus.L2_REVIEW,
     action: "L1_APPROVE",
     performedBy: reviewerId,
     performedByRole: UserRole.L1,
-    comment,
-  });
+    comment: [`Approved by ${trimmedName}`, comment?.trim()]
+      .filter(Boolean)
+      .join(" — "),
+  }).catch((error) => console.error("[l1-approve] history", error));
 
-  void dispatchL1Approved(employeeNotifyContext(employee)).catch(() => undefined);
+  void dispatchL1Approved(employeeNotifyContext(updated)).catch(() => undefined);
 
   return {};
 }
@@ -240,23 +302,24 @@ export async function performL1Return(
 
 export async function getEmployeeDetailForReview(employeeId: string) {
   await connectDB();
-  const employee = await Employee.findById(employeeId)
-    .populate("submittedBy", "name email")
-    .populate("l1Decision.decidedBy", "name email")
-    .populate("l2Decision.decidedBy", "name email")
-    .lean();
+  const [employee, documents, history] = await Promise.all([
+    Employee.findById(employeeId)
+      .populate("submittedBy", "name email")
+      .populate("l1Decision.decidedBy", "name email")
+      .populate("l2Decision.decidedBy", "name email")
+      .lean(),
+    EmployeeDocument.find({
+      employeeId,
+      isActive: true,
+    }).lean(),
+    ApprovalHistory.find({ employeeId })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .populate("performedBy", "name")
+      .lean(),
+  ]);
+
   if (!employee) return null;
-
-  const documents = await EmployeeDocument.find({
-    employeeId,
-    isActive: true,
-  }).lean();
-
-  const history = await ApprovalHistory.find({ employeeId })
-    .sort({ createdAt: -1 })
-    .limit(20)
-    .populate("performedBy", "name")
-    .lean();
 
   return { employee, documents, history };
 }
@@ -279,69 +342,91 @@ export async function performL2Approve(
   reviewerId: string,
   comment?: string
 ): Promise<{ employeeIdCode?: string }> {
+  if (!mongoose.isValidObjectId(employeeId)) {
+    throw new ApprovalError("Application not found", "NOT_FOUND");
+  }
+  if (!mongoose.isValidObjectId(reviewerId)) {
+    throw new ApprovalError("Please sign in again to approve", "AUTH");
+  }
+
   await connectDB();
-  const employee = await Employee.findById(employeeId);
+  const employee = await retryOnce(() => Employee.findById(employeeId));
   if (!employee) throw new ApprovalError("Application not found", "NOT_FOUND");
 
-  assertPendingL2Review(employee);
+  const alreadyDone =
+    employee.l2Decision?.action === "APPROVE" ||
+    employee.l2Decision?.action === "FORWARD" ||
+    !!employee.forwardedToAdminAt ||
+    !!employee.temporaryEmployeeId;
 
-  const fromStatus = employee.status;
-  employee.status = EmployeeStatus.APPROVED;
-  employee.l2Decision = {
-    action: "APPROVE",
-    comment,
-    decidedBy: new mongoose.Types.ObjectId(reviewerId),
-    decidedAt: new Date(),
-  };
-  employee.approvedAt = new Date();
-  await employee.save();
+  if (!alreadyDone) {
+    assertPendingL2Review(employee);
 
-  await recordHistory({
-    employeeId: employee._id,
-    fromStatus,
-    toStatus: EmployeeStatus.APPROVED,
-    action: "L2_APPROVE",
-    performedBy: reviewerId,
-    performedByRole: UserRole.L2,
-    comment,
-  });
+    const fromStatus = employee.status;
+    const now = new Date();
+    employee.status = EmployeeStatus.APPROVED;
+    employee.l2Decision = {
+      action: "APPROVE",
+      comment,
+      decidedBy: new mongoose.Types.ObjectId(reviewerId),
+      decidedAt: now,
+    };
+    employee.approvedAt = now;
+    await retryOnce(() => employee.save());
 
-  void dispatchL2Approved(employeeNotifyContext(employee)).catch(() => undefined);
+    void recordHistory({
+      employeeId: employee._id,
+      fromStatus,
+      toStatus: EmployeeStatus.APPROVED,
+      action: "L2_APPROVE",
+      performedBy: reviewerId,
+      performedByRole: UserRole.L2,
+      comment,
+    }).catch((error) => console.error("[l2-approve] history", error));
 
-  const result = await generateTemporaryEmployeeId(employeeId);
-  const employeeIdCode = result.employeeIdCode;
-  await recordHistory({
-    employeeId: employee._id,
-    fromStatus: EmployeeStatus.APPROVED,
-    toStatus: EmployeeStatus.ID_GENERATED,
-    action: "GENERATE_ID",
-    performedBy: reviewerId,
-    performedByRole: UserRole.L2,
-    comment: `Temporary Employee ID ${employeeIdCode} assigned`,
-  });
+    void dispatchL2Approved(employeeNotifyContext(employee)).catch(() => undefined);
+  }
 
-  // Do not block the approve response on Cloudinary folder work
+  let employeeIdCode = employee.temporaryEmployeeId;
+
+  try {
+    const result = await generateTemporaryEmployeeId(employeeId);
+    employeeIdCode = result.employeeIdCode;
+
+    void recordHistory({
+      employeeId: employee._id,
+      fromStatus: EmployeeStatus.APPROVED,
+      toStatus: EmployeeStatus.ID_GENERATED,
+      action: "GENERATE_ID",
+      performedBy: reviewerId,
+      performedByRole: UserRole.L2,
+      comment: `Temporary Employee ID ${employeeIdCode} assigned`,
+    }).catch(() => undefined);
+  } catch (error) {
+    console.error("[l2-approve] temp ID", error);
+  }
+
   void import("@/lib/services/employee-documents-folder.service")
     .then(({ organizeEmployeeDocumentsFolder }) =>
       organizeEmployeeDocumentsFolder(employeeId)
     )
     .catch(() => undefined);
 
-  const refreshed = await Employee.findById(employeeId);
-  if (refreshed && !refreshed.forwardedToAdminAt) {
-    refreshed.forwardedToAdminAt = new Date();
-    refreshed.status = EmployeeStatus.ID_GENERATED;
-    await refreshed.save();
-
-    await recordHistory({
-      employeeId: refreshed._id,
-      fromStatus: EmployeeStatus.ID_GENERATED,
-      toStatus: EmployeeStatus.ID_GENERATED,
-      action: "L2_FORWARD_ADMIN",
-      performedBy: reviewerId,
-      performedByRole: UserRole.L2,
-      comment: "Auto-forwarded to Admin after L2 approval",
-    });
+  try {
+    await Employee.updateOne(
+      {
+        _id: employeeId,
+        forwardedToAdminAt: { $exists: false },
+      },
+      {
+        $set: {
+          forwardedToAdminAt: new Date(),
+          status: EmployeeStatus.ID_GENERATED,
+        },
+      }
+    );
+  } catch (error) {
+    console.error("[l2-approve] forward admin", error);
   }
 
   return { employeeIdCode };

@@ -3,6 +3,7 @@ import {
   DocumentType,
 } from "@/features/onboarding/constants";
 import type { PreviewDocument } from "@/features/documents/components/DocumentPreviewGrid";
+import { toClientProps } from "@/lib/serialize/client-props";
 
 interface RawReviewDocument {
   _id: unknown;
@@ -11,6 +12,7 @@ interface RawReviewDocument {
   mimeType?: string;
   sizeBytes?: number;
   folderLabel?: string;
+  url?: string;
 }
 
 /**
@@ -20,15 +22,18 @@ interface RawReviewDocument {
 export function mapReviewDocuments(
   documents: RawReviewDocument[]
 ): PreviewDocument[] {
-  return documents.map((doc) => ({
-    _id: String(doc._id),
-    documentType: doc.documentType,
-    label:
-      doc.folderLabel ||
-      DOCUMENT_LABELS[doc.documentType as DocumentType] ||
-      doc.documentType,
-    fileName: doc.fileName,
-    mimeType: doc.mimeType ?? "application/octet-stream",
-    sizeBytes: doc.sizeBytes,
-  }));
+  return toClientProps(
+    documents.map((doc) => ({
+      _id: String(doc._id),
+      documentType: doc.documentType,
+      label:
+        doc.folderLabel ||
+        DOCUMENT_LABELS[doc.documentType as DocumentType] ||
+        doc.documentType,
+      fileName: doc.fileName,
+      mimeType: doc.mimeType ?? "application/octet-stream",
+      sizeBytes: doc.sizeBytes,
+      url: doc.url,
+    }))
+  );
 }

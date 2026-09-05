@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db/connect";
 import { AuditLog } from "@/lib/db/models/AuditLog";
+import { toClientProps } from "@/lib/serialize/client-props";
 
 export async function logAudit(params: {
   action: string;
@@ -37,14 +38,16 @@ export interface AuditLogItem {
 export async function getAuditLogs(limit = 100): Promise<AuditLogItem[]> {
   await connectDB();
   const logs = await AuditLog.find().sort({ createdAt: -1 }).limit(limit).lean();
-  return logs.map((l) => ({
-    _id: String(l._id),
-    action: l.action,
-    entity: l.entity,
-    entityId: l.entityId,
-    performedByName: l.performedByName,
-    performedByRole: l.performedByRole,
-    details: l.details as Record<string, unknown> | undefined,
-    createdAt: l.createdAt.toISOString(),
-  }));
+  return logs.map((l) =>
+    toClientProps({
+      _id: String(l._id),
+      action: l.action,
+      entity: l.entity,
+      entityId: l.entityId,
+      performedByName: l.performedByName,
+      performedByRole: l.performedByRole,
+      details: l.details as Record<string, unknown> | undefined,
+      createdAt: l.createdAt.toISOString(),
+    })
+  );
 }

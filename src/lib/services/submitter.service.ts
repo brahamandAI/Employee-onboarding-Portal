@@ -6,6 +6,7 @@ import { ADMIN_REGISTRATIONS_FILTER } from "@/lib/services/approval-queue";
 import {
   getRegistrationStatusLabel,
 } from "@/features/application-status/constants";
+import { toClientProps } from "@/lib/serialize/client-props";
 
 export interface SubmitterRegistrationItem {
   _id: string;
@@ -45,7 +46,7 @@ function mapRegistration(emp: Record<string, unknown>): SubmitterRegistrationIte
             ? "Temporary Employee ID Generated"
             : getRegistrationStatusLabel(status);
 
-  return {
+  return toClientProps({
     _id: String(emp._id),
     applicationRef: String(emp.applicationRef),
     fullName: personal?.fullName ?? "Unknown",
@@ -63,7 +64,7 @@ function mapRegistration(emp: Record<string, unknown>): SubmitterRegistrationIte
       ? new Date(emp.forwardedToAdminAt as Date).toISOString()
       : undefined,
     rejectionComment,
-  };
+  });
 }
 
 export async function getSubmitterRegistrations(

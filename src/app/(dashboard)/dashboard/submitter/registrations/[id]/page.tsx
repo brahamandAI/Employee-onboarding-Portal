@@ -6,6 +6,11 @@ import { RegistrationDetailReadOnly } from "@/features/submitter/components/Regi
 import { OpenRegistrationEditButton } from "@/features/submitter/components/OpenRegistrationEditButton";
 import { getRegistrationStatusLabel } from "@/features/application-status/constants";
 import { DashboardBackLink } from "@/components/dashboard/DashboardBackLink";
+import {
+  clientHistoryItems,
+  serializeRegistrationDocuments,
+  serializeRegistrationEmployee,
+} from "@/lib/serialize/client-props";
 
 export const metadata = { title: "Registration Details | Submitter" };
 
@@ -33,10 +38,7 @@ export default async function SubmitterRegistrationDetailPage({ params }: PagePr
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <DashboardBackLink
-          href="/dashboard/submitter/registrations"
-          label="Back to all registrations"
-        />
+        <DashboardBackLink href="/dashboard/submitter/registrations" />
         {canEdit && <OpenRegistrationEditButton employeeId={String(employee._id)} />}
       </div>
 
@@ -54,36 +56,9 @@ export default async function SubmitterRegistrationDetailPage({ params }: PagePr
       <RegistrationDetailReadOnly
         employeeId={String(employee._id)}
         showDocumentsFolder={Boolean(employee.temporaryEmployeeId)}
-        employee={{
-          applicationRef: employee.applicationRef,
-          status: String(employee.status),
-          temporaryEmployeeId: employee.temporaryEmployeeId,
-          personalDetails: employee.personalDetails as Record<string, unknown>,
-          address: employee.address as Record<string, unknown>,
-          education: employee.education as Record<string, unknown>,
-          references: employee.references as Record<string, unknown>[],
-          familyDetails: employee.familyDetails as Record<string, unknown>[],
-          nominee: employee.nominee as Record<string, unknown>,
-          additionalDetails: employee.additionalDetails as Record<string, unknown>,
-          exServiceman: employee.exServiceman as Record<string, unknown>,
-          gunman: (employee as { gunman?: Record<string, unknown> }).gunman,
-          rejectionReason: employee.rejectionReason ?? undefined,
-          correctionNotes: employee.correctionNotes ?? undefined,
-        }}
-        documents={documents.map((d) => ({
-          documentType: d.documentType,
-          fileName: d.fileName,
-          url: d.url,
-        }))}
-        history={history.map((h) => ({
-          action: h.action,
-          fromStatus: h.fromStatus,
-          toStatus: h.toStatus,
-          comment: h.comment,
-          createdAt: h.createdAt,
-          performedBy: h.performedBy as { name?: string } | undefined,
-          performedByRole: h.performedByRole,
-        }))}
+        employee={serializeRegistrationEmployee(employee)}
+        documents={serializeRegistrationDocuments(documents)}
+        history={clientHistoryItems(history)}
       />
     </div>
   );

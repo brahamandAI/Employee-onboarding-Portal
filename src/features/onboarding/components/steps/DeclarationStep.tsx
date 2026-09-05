@@ -79,7 +79,7 @@ export function DeclarationStep({
           id="declaration-agreed"
           label="I hereby declare that the information provided by me is true and correct."
           checked={!!agreed}
-          onChange={(e) => setValue("declaration.agreed", e.target.checked)}
+          onChange={(e) => setValue("declaration.agreed", e.target.checked, { shouldValidate: true })}
           error={errors.declaration?.agreed?.message}
         />
 
@@ -94,7 +94,9 @@ export function DeclarationStep({
               label="I accept the Police Verification declaration."
               checked={!!policeVerificationAccepted}
               onChange={(e) =>
-                setValue("declaration.policeVerificationAccepted", e.target.checked)
+                setValue("declaration.policeVerificationAccepted", e.target.checked, {
+                  shouldValidate: true,
+                })
               }
               error={errors.declaration?.policeVerificationAccepted?.message}
             />
@@ -121,11 +123,14 @@ export function DeclarationStep({
           </div>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-3">
           <SignaturePad
             value={signatureDataUrl}
             onChange={(dataUrl) => {
-              setValue("declaration.signatureDataUrl", dataUrl, { shouldValidate: true });
+              setValue("declaration.signatureDataUrl", dataUrl, {
+                shouldValidate: true,
+                shouldDirty: true,
+              });
               if (dataUrl) {
                 setValue("declaration.signedAt", new Date().toISOString());
               }

@@ -12,13 +12,18 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const snapshot = await getDashboardLiveSnapshot(
-    session.user.role,
-    session.user.id
-  );
+  try {
+    const snapshot = await getDashboardLiveSnapshot(
+      session.user.role,
+      session.user.id
+    );
 
-  return NextResponse.json({
-    ...snapshot,
-    at: new Date().toISOString(),
-  });
+    return NextResponse.json({
+      ...snapshot,
+      at: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("[dashboard-live]", error);
+    return NextResponse.json({ error: "Live update unavailable" }, { status: 503 });
+  }
 }

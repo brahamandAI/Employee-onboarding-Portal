@@ -119,14 +119,7 @@ export function EmployeeDocumentsFolderPanel({
   }
 
   if (loading && !data) {
-    return (
-      <Card>
-        <CardContent className="flex items-center gap-2 py-6 text-sm text-[#64748B]">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading employee documents folder…
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   if (error && !data) {

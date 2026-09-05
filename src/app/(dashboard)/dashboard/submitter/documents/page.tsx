@@ -11,7 +11,7 @@ export default async function SubmitterEmployeeDocumentsPage() {
 
   return (
     <div className="space-y-6">
-      <DashboardBackLink href="/dashboard/submitter" label="Back to dashboard" />
+      <DashboardBackLink href="/dashboard/submitter" />
       <DashboardPageHeader
         title="Employee Documents"
         description="Your employee folders appear here after L2 approval. You can only access folders for registrations you submitted."

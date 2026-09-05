@@ -1,4 +1,5 @@
 import mongoose, { Mongoose } from "mongoose";
+import { ONBOARDING_TOTAL_STEPS } from "@/features/onboarding/constants";
 
 interface MongooseCache {
   conn: Mongoose | null;
@@ -17,6 +18,23 @@ const cached: MongooseCache = global.mongooseCache ?? {
 
 if (!global.mongooseCache) {
   global.mongooseCache = cached;
+}
+
+let repairedLegacySteps = false;
+
+async function repairLegacyOnboardingSteps(instance: Mongoose) {
+  if (repairedLegacySteps) return;
+  const db = instance.connection.db;
+  if (!db) return;
+  repairedLegacySteps = true;
+  try {
+    await db.collection("employees").updateMany(
+      { currentStep: { $gt: ONBOARDING_TOTAL_STEPS } },
+      { $set: { currentStep: ONBOARDING_TOTAL_STEPS } }
+    );
+  } catch {
+    repairedLegacySteps = false;
+  }
 }
 
 const connectionOptions: mongoose.ConnectOptions = {
@@ -76,6 +94,7 @@ export async function connectDB(): Promise<Mongoose> {
   const uri = getMongoUri();
 
   if (cached.conn && isConnectionReady(cached.conn)) {
+    await repairLegacyOnboardingSteps(cached.conn);
     return cached.conn;
   }
 
@@ -92,6 +111,7 @@ export async function connectDB(): Promise<Mongoose> {
   }
 
   cached.conn = await cached.promise;
+  await repairLegacyOnboardingSteps(cached.conn);
   return cached.conn;
 }
 

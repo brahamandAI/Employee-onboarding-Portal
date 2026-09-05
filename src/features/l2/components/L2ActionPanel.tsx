@@ -20,9 +20,10 @@ interface L2ActionPanelProps {
   status: EmployeeStatus;
   employeeIdCode?: string;
   l1DecisionAction?: string;
-  l2DecisionAction?: "APPROVE" | "REJECT" | "RETURN" | "RETURN_TO_L1" | "FORWARD";
+  l2DecisionAction?: string;
   forwardedToSupportAt?: string;
   forwardedToAdminAt?: string;
+  onStatusChange?: (status: EmployeeStatus) => void;
 }
 
 type CompletedAction = "approve" | "returnToL1" | null;
@@ -35,6 +36,7 @@ export function L2ActionPanel({
   l2DecisionAction,
   forwardedToSupportAt,
   forwardedToAdminAt,
+  onStatusChange,
 }: L2ActionPanelProps) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -78,10 +80,12 @@ export function L2ActionPanel({
   async function submitApprove() {
     if (busy || completedAction) return;
     setError(null);
+    setBusy(true);
 
     setCompletedAction("approve");
-    setSuccess("Approved — Temporary Employee ID is being generated and sent to Admin.");
+    setSuccess("Approved — Temporary Employee ID is being generated.");
     setShowReturnToL1(false);
+    onStatusChange?.(EmployeeStatus.ID_GENERATED);
 
     const fd = new FormData();
     fd.set("employeeId", employeeId);
@@ -92,6 +96,8 @@ export function L2ActionPanel({
         setCompletedAction(null);
         setSuccess(null);
         setError(result.error ?? "Action failed");
+        onStatusChange?.(status);
+        setBusy(false);
         return;
       }
       if (result.data?.employeeIdCode) {
@@ -99,12 +105,17 @@ export function L2ActionPanel({
         setSuccess(
           `Approved — Temporary Employee ID ${result.data.employeeIdCode} generated and sent to Admin.`
         );
+      } else {
+        setSuccess("Approved — forwarded to Admin.");
       }
       router.refresh();
     } catch {
       setCompletedAction(null);
       setSuccess(null);
       setError("Approval failed. Please try again.");
+      onStatusChange?.(status);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -128,6 +139,7 @@ export function L2ActionPanel({
       setShowReturnToL1(false);
       setComment("");
       setSuccess("Sent back to L1 with your note.");
+      onStatusChange?.(EmployeeStatus.L1_REVIEW);
       setBusy(false);
       router.refresh();
     } catch {
@@ -150,9 +162,12 @@ export function L2ActionPanel({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">L2 Actions</CardTitle>
+    <Card className="overflow-hidden border-[#BFDBFE] shadow-[0_12px_32px_-24px_rgba(29,78,216,0.45)]">
+      <CardHeader className="bg-gradient-to-r from-[#EFF6FF] to-white">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <CheckCircle className="h-4 w-4 text-[#1D4ED8]" />
+          L2 Actions
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {success && (
@@ -225,8 +240,9 @@ export function L2ActionPanel({
             />
             <div className="flex flex-wrap gap-2">
               <Button
-                variant="default"
+                variant="success"
                 size="sm"
+                isLoading={busy && completedAction === "approve"}
                 disabled={!confirmChecked || busy}
                 onClick={() => void submitApprove()}
               >
@@ -234,7 +250,7 @@ export function L2ActionPanel({
                 Approve
               </Button>
               <Button
-                variant="outline"
+                variant="warning"
                 size="sm"
                 disabled={busy}
                 onClick={() => {

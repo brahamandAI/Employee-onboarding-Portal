@@ -15,6 +15,8 @@ import {
   l2ReturnToL1Action,
 } from "@/features/l2/actions/l2.actions";
 import { EmptyState } from "@/components/ui/empty-state";
+import { DataListToolbar } from "@/components/dashboard/DataListToolbar";
+import { useFilteredList } from "@/components/dashboard/use-filtered-list";
 
 interface L2ApplicationTableProps {
   applications: ApplicationListItem[];
@@ -43,6 +45,16 @@ export function L2ApplicationTable({
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const list = useFilteredList(
+    applications,
+    (app) => app.status,
+    (app) =>
+      [app.applicationRef, app.fullName, app.postAppliedFor, app.l1ApprovedByName]
+        .filter(Boolean)
+        .join(" "),
+    (app) => app.l1ApprovedAt ?? app.submittedAt,
+    (app) => app.fullName
+  );
 
   async function handleApprove(employeeId: string) {
     if (busyId || doneIds.has(employeeId)) return;
@@ -118,33 +130,49 @@ export function L2ApplicationTable({
   return (
     <div className="space-y-4">
       {success && (
-        <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">{success}</p>
+        <p className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+          {success}
+        </p>
       )}
       {error && (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>
+        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          {error}
+        </p>
       )}
 
       <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+        <DataListToolbar
+          search={list.search}
+          onSearchChange={list.setSearch}
+          statusFilter={list.statusFilter}
+          onStatusFilterChange={list.setStatusFilter}
+          sort={list.sort}
+          onSortChange={list.setSort}
+          total={list.total}
+          page={list.page}
+          pageCount={list.pageCount}
+          onPageChange={list.setPage}
+        />
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]/90">
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                <th className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
                   Application Ref
                 </th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">Name</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">Post</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">Status</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                <th className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">Name</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">Post</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">Status</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
                   L1 Approved By
                 </th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                <th className="w-[1%] whitespace-nowrap px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody>
-              {applications.map((app) => {
+              {list.rows.map((app) => {
                 const canReview =
                   !doneIds.has(app._id) && app.status === EmployeeStatus.L2_REVIEW;
 
@@ -153,14 +181,14 @@ export function L2ApplicationTable({
                     key={app._id}
                     className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F8FAFC]"
                   >
-                    <td className="px-4 py-3 font-medium text-primary">
+                    <td className="whitespace-nowrap px-4 py-3 align-middle font-medium text-primary">
                       {app.applicationRef}
                     </td>
-                    <td className="px-4 py-3">{app.fullName}</td>
-                    <td className="px-4 py-3 text-[#64748B]">
+                    <td className="whitespace-nowrap px-4 py-3 align-middle">{app.fullName}</td>
+                    <td className="whitespace-nowrap px-4 py-3 align-middle text-[#64748B]">
                       {app.postAppliedFor ?? "—"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="whitespace-nowrap px-4 py-3 align-middle">
                       {doneIds.has(app._id) ? (
                         <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
                           Done
@@ -174,19 +202,20 @@ export function L2ApplicationTable({
                         ? `${app.l1ApprovedByName}${app.l1ApprovedAt ? ` (${formatDate(app.l1ApprovedAt)})` : ""}`
                         : formatDate(app.l1ApprovedAt)}
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex flex-wrap items-center justify-end gap-2">
+                    <td className="whitespace-nowrap px-4 py-3 align-middle text-right">
+                      <div className="inline-flex items-center justify-end gap-2">
                         <Link
                           href={`${viewPathPrefix}/${app._id}`}
-                          className="inline-flex h-8 items-center gap-1 rounded-md px-3 text-sm font-medium text-primary hover:bg-muted"
+                          prefetch
+                          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-[#BFDBFE] bg-[#EFF6FF] px-3 text-sm font-medium leading-none text-[#1D4ED8] hover:bg-[#DBEAFE]"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-3.5 w-3.5 shrink-0" />
                           View
                         </Link>
                         {canReview && (
                           <>
                             <Button
-                              variant="default"
+                              variant="success"
                               size="sm"
                               disabled={!!busyId}
                               onClick={() => void handleApprove(app._id)}
@@ -195,7 +224,7 @@ export function L2ApplicationTable({
                               Approve
                             </Button>
                             <Button
-                              variant="outline"
+                              variant="warning"
                               size="sm"
                               disabled={!!busyId}
                               onClick={() => {

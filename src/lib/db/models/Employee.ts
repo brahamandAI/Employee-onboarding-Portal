@@ -37,6 +37,8 @@ export interface IEmployee extends Document {
   l1Decision?: {
     action: "APPROVE" | "REJECT" | "RETURN";
     comment?: string;
+    /** Name typed by the L1 reviewer at approval time */
+    approvedByName?: string;
     decidedBy: mongoose.Types.ObjectId;
     decidedAt: Date;
   };
@@ -122,6 +124,7 @@ const EmployeeSchema = new Schema<IEmployee>(
     l1Decision: {
       action: { type: String, enum: ["APPROVE", "REJECT", "RETURN"] },
       comment: { type: String },
+      approvedByName: { type: String, trim: true },
       decidedBy: { type: Schema.Types.ObjectId, ref: "User" },
       decidedAt: { type: Date },
     },
@@ -154,6 +157,19 @@ const EmployeeSchema = new Schema<IEmployee>(
   },
   { timestamps: true }
 );
+
+EmployeeSchema.pre("validate", function clampLegacyOnboardingProgress() {
+  const max = ONBOARDING_TOTAL_STEPS;
+  const step = Number(this.currentStep) || 1;
+  this.currentStep = Math.min(Math.max(step, 1), max);
+  if (Array.isArray(this.completedSteps)) {
+    this.completedSteps = [
+      ...new Set(
+        this.completedSteps.filter((s) => Number(s) >= 1 && Number(s) <= max)
+      ),
+    ].sort((a, b) => a - b);
+  }
+});
 
 EmployeeSchema.index({ email: 1, status: 1 });
 EmployeeSchema.index({ status: 1, createdAt: -1 });
